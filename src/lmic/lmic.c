@@ -939,7 +939,11 @@ static void setupRx2 (void) {
 static void schedRx12 (ostime_t delay, osjobcb_t func, u1_t dr) {
     ostime_t hsym = dr2hsym(dr);
 
-    LMIC.rxsyms = MINRX_SYMS;
+#if defined(FOR_LG01_GW)
+	LMIC.rxsyms = MINRX_SYMS * 50;
+#else
+   	LMIC.rxsyms = MINRX_SYMS;	
+#endif // For use with LG01 (with Mega328P) OTAA
 
     // If a clock error is specified, compensate for it by extending the
     // receive window
@@ -1114,7 +1118,9 @@ static bit_t processJoinAccept (void) {
     LMIC.opmode &= ~(OP_JOINING|OP_TRACK|OP_REJOIN|OP_TXRXPEND|OP_PINGINI) | OP_NEXTCHNL;
     LMIC.txCnt = 0;
     stateJustJoined();
-    LMIC.dn2Dr = LMIC.frame[OFF_JA_DLSET] & 0x0F;
+    #if !defined(DISABLE_INITIAL_REQUEST_JOIN)  
+        LMIC.dn2Dr = LMIC.frame[OFF_JA_DLSET] & 0x0F;
+    #endif
     LMIC.rx1DrOffset = (LMIC.frame[OFF_JA_DLSET] >> 4) & 0x7;
     LMIC.rxDelay = LMIC.frame[OFF_JA_RXDLY];
     if (LMIC.rxDelay == 0) LMIC.rxDelay = 1;

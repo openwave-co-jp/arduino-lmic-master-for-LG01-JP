@@ -62,22 +62,21 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 60;
+const unsigned TX_INTERVAL = 20;
 
 // Pin mapping
-// Adapted for Feather M0 per p.10 of [feather]
+// For Dragino LoRa Shield, LoRa GPS Shield and LoRa mini
 const lmic_pinmap lmic_pins = {
-    .nss = 8,                       // chip select on feather (rf95module) CS
+    .nss = 10,                       // chip select on feather (rf95module) CS
     .rxtx = LMIC_UNUSED_PIN,
-    .rst = 4,                       // reset pin
-    .dio = {6, 5, LMIC_UNUSED_PIN}, // assumes external jumpers [feather_lora_jumper]
-                                    // DIO1 is on JP1-1: is io1 - we connect to GPO6
-                                    // DIO1 is on JP5-3: is D2 - we connect to GPO5
+    .rst = 9,                       // reset pin
+    .dio = {2, 6, 7}, 
 };
 
 void onEvent (ev_t ev) {
     Serial.print(os_getTime());
     Serial.print(": ");
+    Serial.println(ev);
     switch(ev) {
         case EV_SCAN_TIMEOUT:
             Serial.println(F("EV_SCAN_TIMEOUT"));
@@ -148,14 +147,14 @@ void do_send(osjob_t* j){
         // Prepare upstream data transmission at the next possible time.
         LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
         Serial.println(F("Packet queued"));
+	      Serial.println(LMIC.freq);
     }
     // Next TX is scheduled after TX_COMPLETE event.
 }
 
 void setup() {
-//    pinMode(13, OUTPUT); 
+    Serial.begin(9600);
     while (!Serial); // wait for Serial to be initialized
-    Serial.begin(115200);
     delay(100);     // per sample code on RF_95 test
     Serial.println(F("Starting"));
 
@@ -187,41 +186,48 @@ void setup() {
     LMIC_setSession (0x1, DEVADDR, NWKSKEY, APPSKEY);
     #endif
 
+    /*
     #if defined(CFG_eu868)
-    // Set up the channels used by the Things Network, which corresponds
-    // to the defaults of most gateways. Without this, only three base
-    // channels from the LoRaWAN specification are used, which certainly
-    // works, so it is good for debugging, but can overload those
-    // frequencies, so be sure to configure the full frequency range of
-    // your network here (unless your network autoconfigures them).
-    // Setting up channels should happen after LMIC_setSession, as that
-    // configures the minimal channel set.
-    LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
-    LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(3, 867100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(4, 867300000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(5, 867500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(6, 867700000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(7, 867900000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
-    LMIC_setupChannel(8, 868800000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
-    // TTN defines an additional channel at 869.525Mhz using SF9 for class B
-    // devices' ping slots. LMIC does not have an easy way to define set this
-    // frequency and support for class B is spotty and untested, so this
-    // frequency is not configured here.
+        // Set up the channels used by the Things Network, which corresponds
+        // to the defaults of most gateways. Without this, only three base
+        // channels from the LoRaWAN specification are used, which certainly
+        // works, so it is good for debugging, but can overload those
+        // frequencies, so be sure to configure the full frequency range of
+        // your network here (unless your network autoconfigures them).
+        // Setting up channels should happen after LMIC_setSession, as that
+        // configures the minimal channel set.
+        LMIC_setupChannel(0, 868100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+        LMIC_setupChannel(1, 868300000, DR_RANGE_MAP(DR_SF12, DR_SF7B), BAND_CENTI);      // g-band
+        LMIC_setupChannel(2, 868500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+        LMIC_setupChannel(3, 867100000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+        LMIC_setupChannel(4, 867300000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+        LMIC_setupChannel(5, 867500000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+        LMIC_setupChannel(6, 867700000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+        LMIC_setupChannel(7, 867900000, DR_RANGE_MAP(DR_SF12, DR_SF7),  BAND_CENTI);      // g-band
+        LMIC_setupChannel(8, 868800000, DR_RANGE_MAP(DR_FSK,  DR_FSK),  BAND_MILLI);      // g2-band
+        // TTN defines an additional channel at 869.525Mhz using SF9 for class B
+        // devices' ping slots. LMIC does not have an easy way to define set this
+        // frequency and support for class B is spotty and untested, so this
+        // frequency is not configured here.
     #elif defined(CFG_us915)
     // NA-US channels 0-71 are configured automatically
     // but only one group of 8 should (a subband) should be active
     // TTN recommends the second sub band, 1 in a zero based count.
     // https://github.com/TheThingsNetwork/gateway-conf/blob/master/US-global_conf.json
     LMIC_selectSubBand(1);
-    #endif
+    #endif */
 
     // Disable link check validation
     LMIC_setLinkCheckMode(0);
 
     // TTN uses SF9 for its RX2 window.
     LMIC.dn2Dr = DR_SF9;
+    #if defined(CFG_eu868)
+    #if defined(FOR_LG01_GW)
+      LMIC_disableChannel(1);    //disable channel 1 
+      LMIC_disableChannel(2);  // disable channel 2 
+    #endif
+    #endif
 
     // Set data rate and transmit power for uplink (note: txpow seems to be ignored by the library)
     LMIC_setDrTxpow(DR_SF7,14);
@@ -231,15 +237,5 @@ void setup() {
 }
 
 void loop() {
-    unsigned long now;
-    now = millis();
-    if ((now & 512) != 0) {
-      digitalWrite(13, HIGH);
-    }
-    else {
-      digitalWrite(13, LOW);
-    }
-      
     os_runloop_once();
-    
 }

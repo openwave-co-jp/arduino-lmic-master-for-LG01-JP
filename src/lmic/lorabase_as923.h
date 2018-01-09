@@ -58,8 +58,8 @@ enum _dr_as923_t {
 //                 freq                band     datarates
 enum {
         AS923_F1    = 923200000,      // g1   SF7-12
-        AS923_F2    = 923400000,      // g1   SF7-12
-        AS923_FDOWN = 923200000,      //      (RX2 freq, DR2)
+        AS923_F2    = 923200000,      // g1   SF7-12
+        AS923_FDOWN = 923400000,      //      (RX2 freq, DR2)
         AS923_FBCN  = 923400000,      //      default BCN, DR3
         AS923_FPING = 923400000,      //      default ping, DR3
 };
@@ -68,7 +68,7 @@ enum {
         AS923_FREQ_MAX = 928000000
 };
 enum {
-        AS923_TX_EIRP_MAX_DBM = 16      // 16 dBm
+        AS923_TX_EIRP_MAX_DBM = 13      // 16 dBm but Arib T-108 is 13dbm
 };
 enum { DR_PAGE_AS923 = 0x10 * (LMIC_REGION_as923 - 1) };
 

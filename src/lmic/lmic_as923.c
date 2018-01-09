@@ -321,7 +321,12 @@ LMICas923_txDoneFSK(ostime_t delay, osjobcb_t func) {
 void
 LMICas923_initJoinLoop(void) {
 	LMIC.txParam = 0xFF;
-        LMICeulike_initJoinLoop(NUM_DEFAULT_CHANNELS, /* adr dBm */ AS923_TX_EIRP_MAX_DBM);
+    LMICeulike_initJoinLoop(NUM_DEFAULT_CHANNELS, /* adr dBm */ AS923_TX_EIRP_MAX_DBM);
+
+#if defined(DISABLE_INITIAL_REQUEST_JOIN)
+	LMICcore_setDrJoin(DRCHG_SET, DISABLE_INITIAL_REQUEST_JOIN);
+#endif
+	
 }
 
 void

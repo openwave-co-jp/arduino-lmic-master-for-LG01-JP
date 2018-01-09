@@ -62,10 +62,16 @@ u1_t LMICeulike_mapChannels(u1_t chpage, u2_t chmap) {
 
 #if !defined(DISABLE_JOIN)
 void LMICeulike_initJoinLoop(uint8_t nDefaultChannels, s1_t adrTxPow) {
-#if CFG_TxContinuousMode
-        LMIC.txChnl = 0
+
+#if defined(FOR_LG01_GW)
+	LMIC.txChnl = 0;
 #else
+	#if CFG_TxContinuousMode
+        LMIC.txChnl = 0
+	#else
         LMIC.txChnl = os_getRndU1() % nDefaultChannels;
+	#endif
+
 #endif
         LMIC.adrTxPow = adrTxPow;
         // TODO(tmm@mcci.com) don't use EU directly, use a table. That
@@ -96,15 +102,20 @@ ostime_t LMICeulike_nextJoinState(uint8_t nDefaultChannels) {
 
         // Try each default channel with same DR
         // If all fail try next lower datarate
-        if (++LMIC.txChnl == /* NUM_DEFAULT_CHANNELS */ nDefaultChannels)
+		
+		#if defined(FOR_LG01_GW)
+		//	Don't change SF for LG01
+		#else
+        	if (++LMIC.txChnl == /* NUM_DEFAULT_CHANNELS */ nDefaultChannels)
                 LMIC.txChnl = 0;
-        if ((++LMIC.txCnt % nDefaultChannels) == 0) {
+        	if ((++LMIC.txCnt % nDefaultChannels) == 0) {
                 // Lower DR every nth try (having all default channels with same DR)
                 if (LMIC.datarate == LORAWAN_DR0)
                         failed = 1; // we have tried all DR - signal EV_JOIN_FAILED
                 else
                         LMICcore_setDrJoin(DRCHG_NOJACC, decDR((dr_t)LMIC.datarate));
-        }
+        	}
+		#endif
         // Clear NEXTCHNL because join state engine controls channel hopping
         LMIC.opmode &= ~OP_NEXTCHNL;
         // Move txend to randomize synchronized concurrent joins.

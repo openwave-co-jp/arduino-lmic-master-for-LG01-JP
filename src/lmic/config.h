@@ -84,7 +84,7 @@
 // Enable this to allow using printf() to print to the given serial port
 // (or any other Print object). This can be easy for debugging. The
 // current implementation only works on AVR, though.
-//#define LMIC_PRINTF_TO Serial
+#define LMIC_PRINTF_TO Serial
 
 // Enable this to use interrupt handler routines listening for RISING signals.
 // Otherwise, the library polls digital input lines for changes.
@@ -126,7 +126,10 @@
 // (but they can no longer hear gateways). This should probably only
 // be used when debugging and/or when talking to the radio directly
 // (e.g. like in the "raw" example).
-//#define DISABLE_INVERT_IQ_ON_RX
+#if defined(FOR_LG01_GW)
+#define DISABLE_INVERT_IQ_ON_RX;	
+#endif // For use with LG01 (with Mega328P) OTAA
+
 
 // This allows choosing between multiple included AES implementations.
 // Make sure exactly one of these is uncommented.

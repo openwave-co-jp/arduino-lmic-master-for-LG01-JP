@@ -100,7 +100,7 @@ enum { RETRY_PERIOD_secs  =     3 };  // secs - random period for retrying a con
 
 #if CFG_LMIC_EU_like // EU868 spectrum ====================================================
 
-enum { MAX_CHANNELS = 16 };      //!< Max supported channels
+enum { MAX_CHANNELS =  1 };      //!< Max supported channels
 enum { MAX_BANDS    =  4 };
 
 enum { LIMIT_CHANNELS = (1<<4) };   // EU868 will never have more channels
