@@ -28,4 +28,5 @@
 //Uncomment this to use the node with LG01
 #define FOR_LG01_GW
 
-#define DISABLE_INITIAL_REQUEST_JOIN AS923_DR_SF7
+//
+#define SF_INITIAL_REQUEST_JOIN AS923_DR_SF10

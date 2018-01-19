@@ -323,8 +323,8 @@ LMICas923_initJoinLoop(void) {
 	LMIC.txParam = 0xFF;
     LMICeulike_initJoinLoop(NUM_DEFAULT_CHANNELS, /* adr dBm */ AS923_TX_EIRP_MAX_DBM);
 
-#if defined(DISABLE_INITIAL_REQUEST_JOIN)
-	LMICcore_setDrJoin(DRCHG_SET, DISABLE_INITIAL_REQUEST_JOIN);
+#if defined(SF_INITIAL_REQUEST_JOIN)
+	LMICcore_setDrJoin(DRCHG_SET, SF_INITIAL_REQUEST_JOIN);
 #endif
 	
 }
