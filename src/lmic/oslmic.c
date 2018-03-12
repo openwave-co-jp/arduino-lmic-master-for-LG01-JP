@@ -136,16 +136,3 @@ void os_runloop_once() {
         j->func(j);
     }
 }
-
-/* change endian (little to big or big to little) 2018.1.5 OpenWave owashi*/
-void chendian4eui(u1_t* eui) {
-	int i = 0;
-	u1_t buf[8];
-	memset(buf, 0x00, sizeof(buf));
-	for (i = 0; i < 8; i++) {
-		buf[i] = eui[8 - i -1];
-	}
-	for (i = 0; i < 8; i++) {
-		eui[i] = buf[i];
-	}
-}

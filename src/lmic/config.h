@@ -126,8 +126,9 @@
 // (but they can no longer hear gateways). This should probably only
 // be used when debugging and/or when talking to the radio directly
 // (e.g. like in the "raw" example).
+//#define DISABLE_INVERT_IQ_ON_RX
 #if defined(FOR_LG01_GW)
-#define DISABLE_INVERT_IQ_ON_RX;	
+#define DISABLE_INVERT_IQ_ON_RX
 #endif // For use with LG01 (with Mega328P) OTAA
 
 

@@ -103,9 +103,7 @@ int os_init_ex (const void *pPinMap);
 void os_runloop (void);
 void os_runloop_once (void);
 u1_t radio_rssi (void);
-	
-/* change endian (little to big or big to little) 2018.1.5 OpenWave owashi*/
-void chendian4eui(u1_t* eui);
+
 //================================================================================
 
 
