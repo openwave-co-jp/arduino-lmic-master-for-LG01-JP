@@ -1118,9 +1118,6 @@ static bit_t processJoinAccept (void) {
     LMIC.opmode &= ~(OP_JOINING|OP_TRACK|OP_REJOIN|OP_TXRXPEND|OP_PINGINI) | OP_NEXTCHNL;
     LMIC.txCnt = 0;
     stateJustJoined();
-    #if !defined(DISABLE_INITIAL_REQUEST_JOIN)  
-        LMIC.dn2Dr = LMIC.frame[OFF_JA_DLSET] & 0x0F;
-    #endif
     #if !defined(SF_INITIAL_REQUEST_JOIN)  
         LMIC.dn2Dr = LMIC.frame[OFF_JA_DLSET] & 0x0F;
     #endif
