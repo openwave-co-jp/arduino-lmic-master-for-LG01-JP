@@ -274,7 +274,7 @@ ostime_t LMICas923_nextTx(ostime_t now) {
                 ostime_t mintime = now + /*8h*/sec2osticks(28800);
                 u1_t band = 0;
                 for (u1_t bi = 0; bi<4; bi++) {
-                        if ((bmap & (1 << bi)) && mintime - LMIC.bands[bi].avail > 0)
+                        if ((bmap & (1 << bi)) && (u4_t)mintime >(u4_t) LMIC.bands[bi].avail)
                                 mintime = LMIC.bands[band = bi].avail;
                 }
                 // Find next channel in given band
