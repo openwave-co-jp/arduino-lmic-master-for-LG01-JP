@@ -270,7 +270,7 @@ void LMICas923_setRx1Params(void) {
 // at work.
 ostime_t LMICas923_nextTx(ostime_t now) {
         u1_t bmap = 0xF;
-        do {
+        //do {
                 //ostime_t mintime = now + /*8h*/sec2osticks(28800);
                 u1_t band = 0;
                 //for (u1_t bi = 0; bi<4; bi++) {
@@ -283,7 +283,7 @@ ostime_t LMICas923_nextTx(ostime_t now) {
         			mintime = (u4_t)LMIC.bands[bi].avail;
         		}
         	}
-#if LMIC_DEBUG_LEVEL > 1
+#if LMIC_DEBUG_LEVEL > 0
         	LMIC_DEBUG_PRINTF("mintime: %lu\n", mintime);
 #endif
                 // Find next channel in given band
@@ -303,7 +303,7 @@ ostime_t LMICas923_nextTx(ostime_t now) {
                 //        return mintime;
                 //}
 		return mintime;
-        } while (1);
+        //} while (1);
 }
 
 #if !defined(DISABLE_BEACONS)
