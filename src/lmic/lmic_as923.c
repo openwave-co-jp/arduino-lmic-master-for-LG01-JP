@@ -283,6 +283,8 @@ ostime_t LMICas923_nextTx(ostime_t now) {
         			mintime = (u4_t)LMIC.bands[bi].avail;
         		}
         	}
+        	LMIC_DEBUG_PRINTF("mintime: %lu\n", mintime);
+        	
                 // Find next channel in given band
                 u1_t chnl = LMIC.bands[band].lastchnl;
                 for (u1_t ci = 0; ci<MAX_CHANNELS; ci++) {
