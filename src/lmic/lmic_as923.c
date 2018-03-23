@@ -271,12 +271,18 @@ void LMICas923_setRx1Params(void) {
 ostime_t LMICas923_nextTx(ostime_t now) {
         u1_t bmap = 0xF;
         do {
-                ostime_t mintime = now + /*8h*/sec2osticks(28800);
-                u1_t band = 0;
-                for (u1_t bi = 0; bi<4; bi++) {
-                        if ((bmap & (1 << bi)) && (u4_t)mintime >(u4_t) LMIC.bands[bi].avail)
-                                mintime = LMIC.bands[band = bi].avail;
-                }
+                //ostime_t mintime = now + /*8h*/sec2osticks(28800);
+                //u1_t band = 0;
+                //for (u1_t bi = 0; bi<4; bi++) {
+                //        if ((bmap & (1 << bi)) && (u4_t)mintime >(u4_t) LMIC.bands[bi].avail)
+                //                mintime = LMIC.bands[band = bi].avail;
+                //}
+        	u4_t mintime = (u4_t)LMIC.bands[0].avail;
+        	for (u1_t bi = 1; bi<4; bi++) {
+        		if (mintime > (u4_t)LMIC.bands[bi].avail && (u4_t)LMIC.bands[bi].avail != 0 || mintime == 0) {
+        			mintime = (u4_t)LMIC.bands[bi].avail;
+        		}
+        	}
                 // Find next channel in given band
                 u1_t chnl = LMIC.bands[band].lastchnl;
                 for (u1_t ci = 0; ci<MAX_CHANNELS; ci++) {
@@ -289,10 +295,11 @@ ostime_t LMICas923_nextTx(ostime_t now) {
                                 return mintime;
                         }
                 }
-                if ((bmap &= ~(1 << band)) == 0) {
-                        // No feasible channel  found!
-                        return mintime;
-                }
+                //if ((bmap &= ~(1 << band)) == 0) {
+                //        // No feasible channel  found!
+                //        return mintime;
+                //}
+		return mintime;
         } while (1);
 }
 
