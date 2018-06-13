@@ -37,18 +37,18 @@
 // first. When copying an EUI from ttnctl output, this means to reverse
 // the bytes. For TTN issued EUIs the last bytes should be 0xD5, 0xB3,
 // 0x70.
-static const u1_t PROGMEM APPEUI[8]={ 0x18, 0x46, 0x00, 0xF0, 0x7E, 0xD5, 0xB3, 0x70 };
+static const u1_t PROGMEM APPEUI[8]={ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 void os_getArtEui (u1_t* buf) { memcpy_P(buf, APPEUI, 8);}
 
 // This should also be in little endian format, see above.
-static const u1_t PROGMEM DEVEUI[8]={ 0x34, 0x90, 0x0A, 0x07, 0xBE, 0x14, 0xB9, 0x00 };
+static const u1_t PROGMEM DEVEUI[8]={ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 void os_getDevEui (u1_t* buf) { memcpy_P(buf, DEVEUI, 8);}
 
 // This key should be in big endian format (or, since it is not really a
 // number but a block of memory, endianness does not really apply). In
 // practice, a key taken from ttnctl can be copied as-is.
 // The key shown here is the semtech default key.
-static const u1_t PROGMEM APPKEY[16] = { 0xE2, 0x42, 0xEC, 0xD6, 0x7E, 0x1A, 0xB1, 0xEE, 0xB5, 0x8F, 0x09, 0x9C, 0x83, 0x91, 0x3D, 0x99 };
+static const u1_t PROGMEM APPKEY[16] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
 void os_getDevKey (u1_t* buf) {  memcpy_P(buf, APPKEY, 16);}
 
 static uint8_t mydata[] = "Hello, world!";
@@ -56,14 +56,14 @@ static osjob_t sendjob;
 
 // Schedule TX every this many seconds (might become longer due to duty
 // cycle limitations).
-const unsigned TX_INTERVAL = 30;
+const unsigned TX_INTERVAL = 60;
 
 // Pin mapping
 const lmic_pinmap lmic_pins = {
-    .nss = 10,
+    .nss = 6,
     .rxtx = LMIC_UNUSED_PIN,
-    .rst = 9,
-    .dio = {2, 6, 7},
+    .rst = 5,
+    .dio = {2, 3, 4},
 };
 
 void onEvent (ev_t ev) {
@@ -107,11 +107,10 @@ void onEvent (ev_t ev) {
                 Serial.print(nwkKey[i], HEX);
               }
               Serial.println("");
-
-              LMIC_setSeqnoUp(140);
             }
             // Disable link check validation (automatically enabled
-            // during join, but not supported by TTN at this time).
+            // during join, but because slow data rates change max TX
+	    // size, we don't use it in this example.
             LMIC_setLinkCheckMode(0);
             break;
         case EV_RFU1:
@@ -122,6 +121,7 @@ void onEvent (ev_t ev) {
             break;
         case EV_REJOIN_FAILED:
             Serial.println(F("EV_REJOIN_FAILED"));
+            break;
             break;
         case EV_TXCOMPLETE:
             Serial.println(F("EV_TXCOMPLETE (includes waiting for RX windows)"));
@@ -134,8 +134,6 @@ void onEvent (ev_t ev) {
             }
             // Schedule next transmission
             os_setTimedCallback(&sendjob, os_getTime()+sec2osticks(TX_INTERVAL), do_send);
-            //Serial.println(F("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"));
-            //Serial.println(F(" "));
             break;
         case EV_LOST_TSYNC:
             Serial.println(F("EV_LOST_TSYNC"));
@@ -153,9 +151,6 @@ void onEvent (ev_t ev) {
         case EV_LINK_ALIVE:
             Serial.println(F("EV_LINK_ALIVE"));
             break;
-        case EV_TXSTART:
-            Serial.println(F("EV_TXSTART"));
-            break;
          default:
             Serial.println(F("Unknown event"));
             break;
@@ -169,9 +164,6 @@ void do_send(osjob_t* j){
     } else {
         // Prepare upstream data transmission at the next possible time.
         LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
-        Serial.print("freq=");
-        Serial.print(LMIC.freq);
-        Serial.print(" ,SF=");
         Serial.println(F("Packet queued"));
     }
     // Next TX is scheduled after TX_COMPLETE event.
@@ -192,13 +184,6 @@ void setup() {
     os_init();
     // Reset the MAC state. Session and pending data transfers will be discarded.
     LMIC_reset();
-
-    #if defined(CFG_eu868)
-      #if defined(FOR_LG01_GW)
-          LMIC_disableChannel(1);    //disable channel 1 
-          LMIC_disableChannel(2);  // disable channel 2 
-      #endif
-    #endif
 
     // Start job (sending automatically starts OTAA too)
     do_send(&sendjob);

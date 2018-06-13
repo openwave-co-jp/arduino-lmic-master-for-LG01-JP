@@ -3,31 +3,23 @@
 
 // In the original LMIC code, these config values were defined on the
 // gcc commandline. Since Arduino does not allow easily modifying the
-// compiler commandline, use this file to load project defaults and then fall back.
-// Note that you should not edit this file, because then your changes will
-// be applied to a globally-distributed file. Instead, create an
-// lmic_project_config.h file.
+// compiler commandline unless you modify the BSP, you have two choices:
+//
+//  - edit {libraries}/arduino-lmic/project_config/lmic_project_config.h;
+//  - use a BSP like the MCCI Arduino BSPs, which get the configuration
+//    from the boards.txt file through a menu option.
+//
+// You definitely should not edit this file.
 
+// set up preconditions, and load configuration if needed.
 #ifndef _LMIC_CONFIG_PRECONDITIONS_H_
 # include "lmic_config_preconditions.h"
 #endif
 
-// if you're editing this file directly (and not editing the project-config file
-// referenced from the pre-conditions file), then uncomment exactly one of the 
-// following to select the operating bandplan
+// check post-conditions.
 
-//#define CFG_eu868 1
-//#define CFG_us915 1
-//#define CFG_cn783 1   // not yet
-//#define CFG_eu433 1   // not yet
-//#define CFG_au921 1
-//#define CFG_cn490 1   // not yet
-//#define CFG_as923 1
-//#define CFG_kr921 1   // not yet
-//#define CFG_in866 1
-
+// make sure that we have exactly one target region defined.
 #if CFG_LMIC_REGION_MASK == 0
-# warning Target RF configuration not defined, assuming CFG_eu868
 # define CFG_eu868 1
 #elif (CFG_LMIC_REGION_MASK & (-CFG_LMIC_REGION_MASK)) != CFG_LMIC_REGION_MASK
 # error You can define at most one of CFG_... variables
@@ -35,6 +27,17 @@
 # error The selected CFG_... region is not supported yet.
 #endif
 
+// make sure that LMIC_COUNTRY_CODE is defined.
+#ifndef LMIC_COUNTRY_CODE
+# define LMIC_COUNTRY_CODE      LMIC_COUNTRY_CODE_NONE
+#endif
+
+// if the country code is Japan, then the region must be AS923
+#if LMIC_COUNTRY_CODE == LMIC_COUNTRY_CODE_JP && CFG_region != LMIC_REGION_as923
+# error "If country code is JP, then region must be AS923"
+#endif
+
+// check for internal consistency
 #if !(CFG_LMIC_EU_like || CFG_LMIC_US_like)
 # error "Internal error: Neither EU-like nor US-like!"
 #endif
@@ -44,6 +47,9 @@
 //#define CFG_sx1272_radio 1
 // This is the SX1276/SX1277/SX1278/SX1279 radio, which is also used on
 // the HopeRF RFM95 boards.
+//#define CFG_sx1276_radio 1
+
+// ensure that a radio is defined.
 #if ! (defined(CFG_sx1272_radio) || defined(CFG_sx1276_radio))
 # warning Target radio not defined, assuming CFG_sx1276_radio
 #define CFG_sx1276_radio 1
@@ -78,13 +84,13 @@
 // configured (e.g. on AVR it is not by default), otherwise using it can
 // cause crashing.
 #ifndef LMIC_DEBUG_LEVEL
-#define LMIC_DEBUG_LEVEL 0
+#define LMIC_DEBUG_LEVEL 2
 #endif
 
 // Enable this to allow using printf() to print to the given serial port
 // (or any other Print object). This can be easy for debugging. The
 // current implementation only works on AVR, though.
-#define LMIC_PRINTF_TO Serial
+//#define LMIC_PRINTF_TO Serial
 
 // Enable this to use interrupt handler routines listening for RISING signals.
 // Otherwise, the library polls digital input lines for changes.
@@ -127,10 +133,6 @@
 // be used when debugging and/or when talking to the radio directly
 // (e.g. like in the "raw" example).
 //#define DISABLE_INVERT_IQ_ON_RX
-#if defined(FOR_LG01_GW)
-#define DISABLE_INVERT_IQ_ON_RX
-#endif // For use with LG01 (with Mega328P) OTAA
-
 
 // This allows choosing between multiple included AES implementations.
 // Make sure exactly one of these is uncommented.

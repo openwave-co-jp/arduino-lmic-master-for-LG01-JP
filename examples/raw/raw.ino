@@ -31,10 +31,10 @@
 
 // Pin mapping
 const lmic_pinmap lmic_pins = {
-    .nss = 10,                       // chip select on feather (rf95module) CS
+    .nss = 6,
     .rxtx = LMIC_UNUSED_PIN,
-    .rst = 9,                       // reset pin
-    .dio = {2, 6, 7}, 
+    .rst = 5,
+    .dio = {2, 3, 4},
 };
 
 

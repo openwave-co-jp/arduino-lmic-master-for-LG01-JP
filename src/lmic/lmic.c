@@ -615,15 +615,20 @@ scan_mac_cmds(
         case MCMD_DN2P_SET: {
 #if !defined(DISABLE_MCMD_DN2P_SET)
             dr_t dr = (dr_t)(opts[oidx+1] & 0x0F);
+            u1_t rx1DrOffset = (u1_t)((opts[oidx+1] & 0x70) >> 4);
             u4_t freq = LMICbandplan_convFreq(&opts[oidx+2]);
             LMIC.dn2Ans = 0x80;   // answer pending
             if( validDR(dr) )
                 LMIC.dn2Ans |= MCMD_DN2P_ANS_DRACK;
             if( freq != 0 )
                 LMIC.dn2Ans |= MCMD_DN2P_ANS_CHACK;
-            if( LMIC.dn2Ans == (0x80|MCMD_DN2P_ANS_DRACK|MCMD_DN2P_ANS_CHACK) ) {
+            if (rx1DrOffset <= 3)
+                LMIC.dn2Ans |= MCMD_DN2P_ANS_RX1DrOffsetAck;
+
+            if( LMIC.dn2Ans == (0x80|MCMD_DN2P_ANS_DRACK|MCMD_DN2P_ANS_CHACK| MCMD_DN2P_ANS_RX1DrOffsetAck) ) {
                 LMIC.dn2Dr = dr;
                 LMIC.dn2Freq = freq;
+                LMIC.rx1DrOffset = rx1DrOffset;
                 DO_DEVDB(LMIC.dn2Dr,dn2Dr);
                 DO_DEVDB(LMIC.dn2Freq,dn2Freq);
             }
@@ -939,12 +944,6 @@ static void setupRx2 (void) {
 static void schedRx12 (ostime_t delay, osjobcb_t func, u1_t dr) {
     ostime_t hsym = dr2hsym(dr);
 
-#if defined(FOR_LG01_GW)
-	LMIC.rxsyms = MINRX_SYMS * 50;
-#else
-   	LMIC.rxsyms = MINRX_SYMS;	
-#endif // For use with LG01 (with Mega328P) OTAA
-
     // If a clock error is specified, compensate for it by extending the
     // receive window
     if (LMIC.clockError != 0) {
@@ -970,6 +969,7 @@ static void schedRx12 (ostime_t delay, osjobcb_t func, u1_t dr) {
     // (again note that hsym is half a sumbol time, so no /2 needed)
     LMIC.rxtime = LMIC.txend + delay + PAMBL_SYMS * hsym - LMIC.rxsyms * hsym;
 
+    LMIC_X_DEBUG_PRINTF("%lu: sched Rx12 %lu\n", os_getTime(), LMIC.rxtime - RX_RAMPUP);
     os_setTimedCallback(&LMIC.osjob, LMIC.rxtime - RX_RAMPUP, func);
 }
 
@@ -1034,18 +1034,32 @@ static bit_t processJoinAccept (void) {
             return 1;
         }
         LMIC.opmode &= ~OP_TXRXPEND;
-        ostime_t delay = LMICbandplan_nextJoinState();
+        int failed = LMICbandplan_nextJoinState();
         EV(devCond, DEBUG, (e_.reason = EV::devCond_t::NO_JACC,
                             e_.eui    = MAIN::CDEV->getEui(),
                             e_.info   = LMIC.datarate|DR_PAGE,
-                            e_.info2  = osticks2ms(delay)));
+                            e_.info2  = failed));
         // Build next JOIN REQUEST with next engineUpdate call
         // Optionally, report join failed.
-        // Both after a random/chosen amount of ticks.
-        os_setTimedCallback(&LMIC.osjob, os_getTime()+delay,
-                            (delay&1) != 0
+        // Both after a random/chosen amount of ticks. That time
+	// is in LMIC.txend. The delay here is either zero or 1
+	// tick; onJoinFailed()/runEngineUpdate() are responsible
+	// for honoring that. XXX(tmm@mcci.com) The IBM 1.6 code
+	// claimed to return a delay but really returns 0 or 1.
+	// Once we update as923 to return failed after dr2, we
+	// can take out this #if.
+#if CFG_region != LMIC_REGION_as923
+        os_setTimedCallback(&LMIC.osjob, os_getTime()+failed,
+                            failed
                             ? FUNC_ADDR(onJoinFailed)      // one JOIN iteration done and failed
                             : FUNC_ADDR(runEngineUpdate)); // next step to be delayed
+#else
+       // in the join of AS923 v1.1 older, only DR2 is used. Therefore,
+       // not much improvement when it handles two different behavior;
+       // onJoinFailed or runEngineUpdate.
+        os_setTimedCallback(&LMIC.osjob, os_getTime()+failed,
+                            FUNC_ADDR(onJoinFailed));
+#endif
         return 1;
     }
     u1_t hdr  = LMIC.frame[0];
@@ -1111,14 +1125,25 @@ static bit_t processJoinAccept (void) {
                                       : EV::joininfo_t::ACCEPT)));
 
     ASSERT((LMIC.opmode & (OP_JOINING|OP_REJOIN))!=0);
+    //
+    // XXX(tmm@mcci.com) OP_REJOIN confuses me, and I'm not sure why we're
+    // adjusting DRs here. We've just recevied a join accept, and the
+    // datarate therefore shouldn't be in play.
+    //
     if( (LMIC.opmode & OP_REJOIN) != 0 ) {
+#if CFG_region != LMIC_REGION_as923
+	// TODO(tmm@mcci.com) regionalize
         // Lower DR every try below current UP DR
         LMIC.datarate = lowerDR(LMIC.datarate, LMIC.rejoinCnt);
+#else
+        // in the join of AS923 v1.1 or older, only DR2 (SF10) is used.
+        LMIC.datarate = AS923_DR_SF10;
+#endif
     }
     LMIC.opmode &= ~(OP_JOINING|OP_TRACK|OP_REJOIN|OP_TXRXPEND|OP_PINGINI) | OP_NEXTCHNL;
     LMIC.txCnt = 0;
     stateJustJoined();
-	LMIC.dn2Dr = LMIC.frame[OFF_JA_DLSET] & 0x0F;
+    LMIC.dn2Dr = LMIC.frame[OFF_JA_DLSET] & 0x0F;
     LMIC.rx1DrOffset = (LMIC.frame[OFF_JA_DLSET] >> 4) & 0x7;
     LMIC.rxDelay = LMIC.frame[OFF_JA_RXDLY];
     if (LMIC.rxDelay == 0) LMIC.rxDelay = 1;
@@ -1227,14 +1252,6 @@ static void buildDataFrame (void) {
         LMIC.dutyCapAns = 0;
     }
 #endif // !DISABLE_MCMD_DCAP_REQ
-#if !defined(DISABLE_MCMD_DN2P_SET)
-    if( LMIC.dn2Ans ) {
-        LMIC.frame[end+0] = MCMD_DN2P_ANS;
-        LMIC.frame[end+1] = LMIC.dn2Ans & ~MCMD_DN2P_ANS_RFU;
-        end += 2;
-        LMIC.dn2Ans = 0;
-    }
-#endif // !DISABLE_MCMD_DN2P_SET
     if( LMIC.devsAns ) {  // answer to device status
         LMIC.frame[end+0] = MCMD_DEVS_ANS;
         LMIC.frame[end+1] = os_getBattLevel();
@@ -1259,6 +1276,14 @@ static void buildDataFrame (void) {
             LMIC.adrAckReq = 0;
         LMIC.adrChanged = 0;
     }
+#if !defined(DISABLE_MCMD_DN2P_SET)
+    if (LMIC.dn2Ans) {
+            LMIC.frame[end + 0] = MCMD_DN2P_ANS;
+            LMIC.frame[end + 1] = LMIC.dn2Ans & ~MCMD_DN2P_ANS_RFU;
+            end += 2;
+            LMIC.dn2Ans = 0;
+    }
+#endif // !DISABLE_MCMD_DN2P_SET
 #if !defined(DISABLE_MCMD_PING_SET) && !defined(DISABLE_PING)
     if( LMIC.pingSetAns != 0 ) {
         LMIC.frame[end+0] = MCMD_PING_ANS;
@@ -1710,13 +1735,16 @@ static void engineUpdate (void) {
         // Earliest possible time vs overhead to setup radio
         if( txbeg - (now + TX_RAMPUP) < 0 ) {
             // We could send right now!
-        txbeg = now;
+            txbeg = now;
             dr_t txdr = (dr_t)LMIC.datarate;
 #if !defined(DISABLE_JOIN)
             if( jacc ) {
                 u1_t ftype;
                 if( (LMIC.opmode & OP_REJOIN) != 0 ) {
+#if CFG_region != LMIC_REGION_as923
+                    // in AS923 v1.1 or older, no need to change the datarate.
                     txdr = lowerDR(txdr, LMIC.rejoinCnt);
+#endif
                     ftype = HDR_FTYPE_REJOIN;
                 } else {
                     ftype = HDR_FTYPE_JREQ;
@@ -1812,6 +1840,7 @@ static void engineUpdate (void) {
                        e_.eui    = MAIN::CDEV->getEui(),
                        e_.info   = osticks2ms(txbeg-now),
                        e_.info2  = LMIC.seqnoUp-1));
+    LMIC_X_DEBUG_PRINTF("%lu: next engine update in %lu\n", now, txbeg-TX_RAMPUP);
     os_setTimedCallback(&LMIC.osjob, txbeg-TX_RAMPUP, FUNC_ADDR(runEngineUpdate));
 }
 
@@ -1870,6 +1899,7 @@ void LMIC_reset (void) {
 
 void LMIC_init (void) {
     LMIC.opmode = OP_SHUTDOWN;
+    LMICbandplan_init();
 }
 
 

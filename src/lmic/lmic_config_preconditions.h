@@ -72,6 +72,20 @@ Revision history:
 #define LMIC_REGION_kr921    8
 #define LMIC_REGION_in866    9
 
+// Some regions have country-specific overrides. For generality, we specify
+// country codes using the LMIC_COUNTY_CODE_C() macro These values are chosen
+// from the 2-letter domain suffixes standardized by ISO-3166-1 alpha2 (see
+// https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2). They are therefore
+// 16-bit constants. By convention, we use UPPER-CASE letters, thus
+// LMIC_COUNTRY_CODE('J', 'P'), not ('j', 'p').
+#define LMIC_COUNTRY_CODE_C(c1, c2)     ((c1) * 256 + (c2))
+
+// this special code means "no country code defined"
+#define LMIC_COUNTRY_CODE_NONE  0
+
+// specific countries. Only the ones that are needed by the code are defined.
+#define LMIC_COUNTRY_CODE_JP    LMIC_COUNTRY_CODE_C('J', 'P')
+
 // include the file that the user is really supposed to edit. But for really strange
 // ports, this can be suppressed
 #ifndef ARDUINO_LMIC_PROJECT_CONFIG_H_SUPPRESS
@@ -112,16 +126,27 @@ Revision history:
                          0)
 
 // the selected region.
-#define CFG_region      ((defined(CFG_eu868) * LMIC_REGION_eu868) + \
-                         (defined(CFG_us915) * LMIC_REGION_us915) + \
-                         (defined(CFG_cn783) * LMIC_REGION_cn783) + \
-                         (defined(CFG_eu433) * LMIC_REGION_eu433) + \
-                         (defined(CFG_au921) * LMIC_REGION_au921) + \
-                         (defined(CFG_cn490) * LMIC_REGION_cn490) + \
-                         (defined(CFG_as923) * LMIC_REGION_as923) + \
-                         (defined(CFG_kr921) * LMIC_REGION_kr921) + \
-                         (defined(CFG_in866) * LMIC_REGION_in866) + \
-                         0)
+#if defined(CFG_eu868)
+# define CFG_region     LMIC_REGION_eu868
+#elif defined(CFG_us915)
+# define CFG_region     LMIC_REGION_us915
+#elif defined(CFG_cn783)
+# define CFG_region     LMIC_REGION_cn783
+#elif defined(CFG_eu433)
+# define CFG_region     LMIC_REGION_eu433
+#elif defined(CFG_au921)
+# define CFG_region     LMIC_REGION_au921
+#elif defined(CFG_cn490)
+# define CFG_region     LMIC_REGION_cn490
+#elif defined(CFG_as923)
+# define CFG_region     LMIC_REGION_as923
+#elif defined(CFG_kr921)
+# define CFG_region     LMIC_REGION_kr921
+#elif defined(CFG_in866)
+# define CFG_region     LMIC_REGION_in866
+#else
+# define CFG_region     0
+#endif
 
 // finally the mask of` US-like and EU-like regions
 #define CFG_LMIC_EU_like_MASK   (                               \

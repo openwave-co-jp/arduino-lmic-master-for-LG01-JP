@@ -174,12 +174,30 @@ void LMICas923_initDefaultChannels(bit_t join) {
                 LMIC.channelDrMap[fu] = DR_RANGE_MAP(AS923_DR_SF12, AS923_DR_SF7B);
         }
 
-	// all channels face a 1% duty cycle.
-        LMIC.bands[BAND_CENTI].txcap = 100;   // 1%
+        LMIC.bands[BAND_CENTI].txcap = AS923_TX_CAP;
         LMIC.bands[BAND_CENTI].txpow = AS923_TX_EIRP_MAX_DBM;
         LMIC.bands[BAND_CENTI].lastchnl = os_getRndU1() % MAX_CHANNELS;
         LMIC.bands[BAND_CENTI].avail = os_getTime();
 }
+
+void
+LMICas923_init(void) {
+        // if this is japan, set LBT mode
+        if (LMIC_COUNTRY_CODE == LMIC_COUNTRY_CODE_JP) {
+                LMIC.lbt_ticks = us2osticks(AS923JP_LBT_US);
+                LMIC.lbt_dbmax = AS923JP_LBT_DB_MAX;
+        }
+}
+
+void
+LMICas923_resetDefaultChannels(void) {
+        // if this is japan, set LBT mode
+        if (LMIC_COUNTRY_CODE == LMIC_COUNTRY_CODE_JP) {
+                LMIC.lbt_ticks = us2osticks(AS923JP_LBT_US);
+                LMIC.lbt_dbmax = AS923JP_LBT_DB_MAX;
+        }
+}
+
 
 bit_t LMIC_setupBand(u1_t bandidx, s1_t txpow, u2_t txcap) {
         if (bandidx != BAND_CENTI) return 0;
@@ -270,22 +288,13 @@ void LMICas923_setRx1Params(void) {
 // at work.
 ostime_t LMICas923_nextTx(ostime_t now) {
         u1_t bmap = 0xF;
-        //do {
-                //ostime_t mintime = now + /*8h*/sec2osticks(28800);
+        do {
+                ostime_t mintime = now + /*8h*/sec2osticks(28800);
                 u1_t band = 0;
-                //for (u1_t bi = 0; bi<4; bi++) {
-                //        if ((bmap & (1 << bi)) && (u4_t)mintime >(u4_t) LMIC.bands[bi].avail)
-                //                mintime = LMIC.bands[band = bi].avail;
-                //}
-        	u4_t mintime = (u4_t)LMIC.bands[0].avail;
-        	for (u1_t bi = 1; bi<4; bi++) {
-        		if (mintime > (u4_t)LMIC.bands[bi].avail && (u4_t)LMIC.bands[bi].avail != 0 || mintime == 0) {
-        			mintime = (u4_t)LMIC.bands[bi].avail;
-        		}
-        	}
-#if LMIC_DEBUG_LEVEL > 0
-        	LMIC_DEBUG_PRINTF("mintime: %lu\n", mintime);
-#endif
+                for (u1_t bi = 0; bi<4; bi++) {
+                        if ((bmap & (1 << bi)) && mintime - LMIC.bands[bi].avail > 0)
+                                mintime = LMIC.bands[band = bi].avail;
+                }
                 // Find next channel in given band
                 u1_t chnl = LMIC.bands[band].lastchnl;
                 for (u1_t ci = 0; ci<MAX_CHANNELS; ci++) {
@@ -298,12 +307,11 @@ ostime_t LMICas923_nextTx(ostime_t now) {
                                 return mintime;
                         }
                 }
-                //if ((bmap &= ~(1 << band)) == 0) {
-                //        // No feasible channel  found!
-                //        return mintime;
-                //}
-		return mintime;
-        //} while (1);
+                if ((bmap &= ~(1 << band)) == 0) {
+                        // No feasible channel  found!
+                        return mintime;
+                }
+        } while (1);
 }
 
 #if !defined(DISABLE_BEACONS)
@@ -342,7 +350,7 @@ LMICas923_updateTx(ostime_t txbeg) {
         // Update channel/global duty cycle stats
         xref2band_t band = &LMIC.bands[freq & 0x3];
         LMIC.freq = freq & ~(u4_t)3;
-        LMIC.txpow = band->txpow + LMICas923_getMaxEIRP(LMIC.txParam);
+        LMIC.txpow = LMICas923_getMaxEIRP(LMIC.txParam);
         band->avail = txbeg + airtime * band->txcap;
         if (LMIC.globalDutyRate != 0)
                 LMIC.globalDutyAvail = txbeg + (airtime << LMIC.globalDutyRate);

@@ -55,7 +55,7 @@ enum { MAX_LEN_FRAME     = 64 };
 enum { LEN_DEVNONCE      =  2 };
 enum { LEN_ARTNONCE      =  3 };
 enum { LEN_NETID         =  3 };
-
+	
 #if defined(FOR_LG01_GW)
 enum { DELAY_JACC1       =  8 }; // in secs
 enum { DELAY_EXTDNW2     =  2 }; // in secs
@@ -63,7 +63,7 @@ enum { DELAY_EXTDNW2     =  2 }; // in secs
 enum { DELAY_JACC1       =  5 }; // in secs
 enum { DELAY_EXTDNW2     =  1 }; // in secs
 #endif  // LG01 have longer process time
-
+	
 enum { DELAY_DNW1        =  1 }; // in secs down window #1
 
 enum { DELAY_JACC2       =  DELAY_JACC1+(int)DELAY_EXTDNW2 }; // in secs
@@ -293,7 +293,7 @@ enum { DR_PAGE = DR_PAGE_AS923 };
 enum { FREQ_PING = AS923_F2 };         // default ping freq
 enum { DR_PING = AS923_DR_SF9 };       // default ping DR: DR3
 enum { FREQ_DNW2 = AS923_FDOWN };
-enum { DR_DNW2 = AS923_DR_SF9 };
+enum { DR_DNW2 = AS923_DR_SF10 };
 enum { CHNL_BCN = 5 };
 enum { FREQ_BCN = AS923_FBCN };
 enum { DR_BCN = AS923_DR_SF9 };
@@ -491,7 +491,8 @@ enum {
     MCMD_LADR_ANS_CHACK  = 0x01, // 0=unknown channel enabled
 };
 enum {
-    MCMD_DN2P_ANS_RFU    = 0xFC, // RFU bits
+    MCMD_DN2P_ANS_RFU    = 0xF8, // RFU bits
+    MCMD_DN2P_ANS_RX1DrOffsetAck = 0x04, // 0=dr2 not allowed
     MCMD_DN2P_ANS_DRACK  = 0x02, // 0=unknown data rate
     MCMD_DN2P_ANS_CHACK  = 0x01, // 0=unknown channel enabled
 };
@@ -514,8 +515,10 @@ enum {
 
 // Bit fields byte#3 of MCMD_LADR_REQ payload
 enum {
+    MCMD_LADR_CHP_USLIKE_SPECIAL = 0x50,  // first special for us-like
+    MCMD_LADR_CHP_BANK    = 0x50,  // special: bits are banks.
     MCMD_LADR_CHP_125ON   = 0x60,  // special channel page enable, bits applied to 64..71
-    MCMD_LADR_CHP_125OFF  = 0x70,  //  ditto
+    MCMD_LADR_CHP_125OFF  = 0x70,  // special channel page: disble 125K, bits apply to 64..71
     MCMD_LADR_N3RFU_MASK  = 0x80,
     MCMD_LADR_CHPAGE_MASK = 0xF0,
     MCMD_LADR_REPEAT_MASK = 0x0F,

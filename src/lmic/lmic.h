@@ -34,14 +34,20 @@
 #include "oslmic.h"
 #include "lorabase.h"
 
-#if LMIC_DEBUG_LEVEL > 0
+#if LMIC_DEBUG_LEVEL > 0 || LMIC_X_DEBUG_LEVEL > 0
 # if defined(LMIC_DEBUG_INCLUDE)
 #   define LMIC_STRINGIFY_(x) #x
 #   define LMIC_STRINGIFY(x) LMIC_STRINGIFY_(x)
 #   include LMIC_STRINGIFY(LMIC_DEBUG_INCLUDE)
 # endif
+#  ifdef LMIC_DEBUG_PRINTF_FN
+     extern void LMIC_DEBUG_PRINTF_FN(const char *f, ...);
+#  endif // ndef LMIC_DEBUG_PRINTF_FN
+#endif
+
 // if LMIC_DEBUG_PRINTF is now defined, just use it. This lets you do anything
 // you like with a sufficiently crazy header file.
+#if LMIC_LEVEL_DEBUG > 0
 # ifndef LMIC_DEBUG_PRINTF
 //  otherwise, check whether someone configured a print-function to be used,
 //  and use it if so.
@@ -70,14 +76,45 @@
 # define LMIC_DEBUG_FLUSH()             do { ; } while (0)
 #endif // LMIC_DEBUG_LEVEL == 0
 
+//
+// LMIC_X_DEBUG_LEVEL enables additional, special print functions for debugging
+// RSSI features. This is used sparingly.
+#if LMIC_X_DEBUG_LEVEL > 0
+#  ifdef LMIC_DEBUG_PRINTF_FN
+#    define LMIC_X_DEBUG_PRINTF(f, ...) LMIC_DEBUG_PRINTF_FN(f, ## __VA_ARGS__)
+#  else
+#    error "LMIC_DEBUG_PRINTF_FN must be defined for LMIC_X_DEBUG_LEVEL > 0."
+#  endif
+#else
+#  define LMIC_X_DEBUG_PRINTF(f, ...)  do {;} while(0)
+#endif
+
 #ifdef __cplusplus
 extern "C"{
 #endif
 
-// LMIC version
+// LMIC version -- this is ths IBM LMIC version
 #define LMIC_VERSION_MAJOR 1
 #define LMIC_VERSION_MINOR 6
 #define LMIC_VERSION_BUILD 1468577746
+
+// Arduino LMIC version
+#define ARDUINO_LMIC_VERSION_CALC(major, minor, patch, local)	\
+	(((major) << 24u) | ((minor) << 16u) | ((patch) << 8u) | (local))
+
+#define	ARDUINO_LMIC_VERSION	ARDUINO_LMIC_VERSION_CALC(2, 1, 5, 0)
+
+#define	ARDUINO_LMIC_VERSION_GET_MAJOR(v)	\
+	(((v) >> 24u) & 0xFFu)
+
+#define	ARDUINO_LMIC_VERSION_GET_MINOR(v)	\
+	(((v) >> 16u) & 0xFFu)
+
+#define	ARDUINO_LMIC_VERSION_GET_PATCH(v)	\
+	(((v) >> 8u) & 0xFFu)
+
+#define	ARDUINO_LMIC_VERSION_GET_LOCAL(v)	\
+	((v) & 0xFFu)
 
 //! Only For Antenna Tuning Tests !
 //#define CFG_TxContinuousMode 1
@@ -100,7 +137,7 @@ enum { RETRY_PERIOD_secs  =     3 };  // secs - random period for retrying a con
 
 #if CFG_LMIC_EU_like // EU868 spectrum ====================================================
 
-enum { MAX_CHANNELS =  1 };      //!< Max supported channels
+enum { MAX_CHANNELS = 16 };      //!< Max supported channels
 enum { MAX_BANDS    =  4 };
 
 enum { LIMIT_CHANNELS = (1<<4) };   // EU868 will never have more channels
@@ -207,6 +244,11 @@ struct lmic_t {
     // Radio settings TX/RX (also accessed by HAL)
     ostime_t    txend;
     ostime_t    rxtime;
+
+    // LBT info
+    ostime_t    lbt_ticks;      // ticks to listen
+    s1_t        lbt_dbmax;      // max permissible dB on our channel (eg -80)
+
     u4_t        freq;
     s1_t        rssi;
     s1_t        snr;
