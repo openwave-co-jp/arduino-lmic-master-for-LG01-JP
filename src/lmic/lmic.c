@@ -1135,8 +1135,10 @@ static bit_t processJoinAccept (void) {
 	// TODO(tmm@mcci.com) regionalize
         // Lower DR every try below current UP DR
         LMIC.datarate = lowerDR(LMIC.datarate, LMIC.rejoinCnt);
-#else
         // in the join of AS923 v1.1 or older, only DR2 (SF10) is used.
+#elif defined(OTHER_DR_AS923)
+        LMIC.datarate = lowerDR(LMIC.datarate, LMIC.rejoinCnt);
+#else
         LMIC.datarate = AS923_DR_SF10;
 #endif
     }
@@ -1743,6 +1745,8 @@ static void engineUpdate (void) {
                 if( (LMIC.opmode & OP_REJOIN) != 0 ) {
 #if CFG_region != LMIC_REGION_as923
                     // in AS923 v1.1 or older, no need to change the datarate.
+                    txdr = lowerDR(txdr, LMIC.rejoinCnt);
+#elif defined(OTHER_DR_AS923)
                     txdr = lowerDR(txdr, LMIC.rejoinCnt);
 #endif
                     ftype = HDR_FTYPE_REJOIN;

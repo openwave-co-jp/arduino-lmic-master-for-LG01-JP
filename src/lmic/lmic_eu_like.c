@@ -128,9 +128,11 @@ ostime_t LMICeulike_nextJoinState(uint8_t nDefaultChannels) {
 // TODO(tmm@mcci.com) - see above; please remove regional dependency from this file.
 #if CFG_region != LMIC_REGION_as923
                         LMICcore_setDrJoin(DRCHG_NOJACC, decDR((dr_t)LMIC.datarate));
-#else
                         // in the join of AS923 v1.1 or older, only DR2 is used.
                         // no need to change the DR.
+#elif defined(OTHER_DR_AS923)
+                        LMICcore_setDrJoin(DRCHG_NOJACC, decDR((dr_t)LMIC.datarate));
+#else
                         LMIC.datarate = AS923_DR_SF10;
 #endif
                 }
