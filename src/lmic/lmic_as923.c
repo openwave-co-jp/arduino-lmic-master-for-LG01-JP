@@ -291,12 +291,12 @@ ostime_t LMICas923_nextTx(ostime_t now) {
         do {
                 ostime_t mintime = now + /*8h*/sec2osticks(28800);
                 u1_t band = 0;
-#if define FOR_LG01_GW
+#if defined(FOR_LG01_GW)
         	mintime = (u4_t)LMIC.bands[0].avail;
         	for (u1_t bi = 1; bi<4; bi++) {
         		if (mintime > (u4_t)LMIC.bands[bi].avail && (u4_t)LMIC.bands[bi].avail != 0 || mintime == 0) {
         			mintime = (u4_t)LMIC.bands[bi].avail;
-        			band = bi
+        			band = bi;
         		}
         	}
 #else
