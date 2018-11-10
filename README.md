@@ -71,6 +71,8 @@ requires C99 mode to be enabled by default.
 
 <!-- /TOC -->
 
+このライブラリは、https://github.com/mcci-catena/arduino-lmic　こちらのソースコードをLG01用に改変したものになります。
+
 ## Installing
 
 To install this library:
