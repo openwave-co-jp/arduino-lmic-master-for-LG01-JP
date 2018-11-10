@@ -71,7 +71,7 @@ requires C99 mode to be enabled by default.
 
 <!-- /TOC -->
 
-このライブラリは、https://github.com/mcci-catena/arduino-lmic　こちらのソースコードをLG01用に改変したものになります。
+このライブラリは、[https://github.com/mcci-catena/arduino-lmic]　こちらのソースコードをDragino社製LoRaゲートウェイLG01用に改変したものになります。
 
 ## Installing
 
