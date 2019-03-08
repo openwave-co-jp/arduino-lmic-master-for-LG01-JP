@@ -1,5 +1,7 @@
 /*
  * Copyright (c) 2014-2016 IBM Corporation.
+ * Copyright (c) 2016 Matthijs Kooijman.
+ * Copyright (c) 2016-2019 MCCI Corporation.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -47,7 +49,7 @@
 
 // if LMIC_DEBUG_PRINTF is now defined, just use it. This lets you do anything
 // you like with a sufficiently crazy header file.
-#if LMIC_LEVEL_DEBUG > 0
+#if LMIC_DEBUG_LEVEL > 0
 # ifndef LMIC_DEBUG_PRINTF
 //  otherwise, check whether someone configured a print-function to be used,
 //  and use it if so.
@@ -59,6 +61,7 @@
 #   else // ndef LMIC_DEBUG_PRINTF_FN
 //    if there's no other info, just use printf. In a pure Arduino environment,
 //    that's what will happen.
+#     include <stdio.h>
 #     define LMIC_DEBUG_PRINTF(f, ...) printf(f, ## __VA_ARGS__)
 #   endif // ndef LMIC_DEBUG_PRINTF_FN
 # endif // ndef LMIC_DEBUG_PRINTF
@@ -102,7 +105,7 @@ extern "C"{
 #define ARDUINO_LMIC_VERSION_CALC(major, minor, patch, local)	\
 	(((major) << 24u) | ((minor) << 16u) | ((patch) << 8u) | (local))
 
-#define	ARDUINO_LMIC_VERSION	ARDUINO_LMIC_VERSION_CALC(2, 1, 5, 0)
+#define	ARDUINO_LMIC_VERSION	ARDUINO_LMIC_VERSION_CALC(2, 3, 2, 0)	/* v2.3.2 */
 
 #define	ARDUINO_LMIC_VERSION_GET_MAJOR(v)	\
 	(((v) >> 24u) & 0xFFu)
@@ -124,9 +127,9 @@ enum { TXCONF_ATTEMPTS    =   8 };   //!< Transmit attempts for confirmed frames
 enum { MAX_MISSED_BCNS    =  20 };   // threshold for triggering rejoin requests
 enum { MAX_RXSYMS         = 100 };   // stop tracking beacon beyond this
 
-enum { LINK_CHECK_CONT    =  12 ,    // continue with this after reported dead link
-       LINK_CHECK_DEAD    =  24 ,    // after this UP frames and no response from NWK assume link is dead
-       LINK_CHECK_INIT    = -12 ,    // UP frame count until we inc datarate
+enum { LINK_CHECK_CONT    =  0  ,    // continue with this after reported dead link
+       LINK_CHECK_DEAD    =  32 ,    // after this UP frames and no response to ack from NWK assume link is dead (ADR_ACK_DELAY)
+       LINK_CHECK_INIT    = -64 ,    // UP frame count until we ask for ack (ADR_ACK_LIMIT)
        LINK_CHECK_OFF     =-128 };   // link check disabled
 
 enum { TIME_RESYNC        = 6*128 }; // secs
@@ -245,6 +248,35 @@ enum {
         MAX_CLOCK_ERROR = 65536,
 };
 
+// network time request callback function
+// defined unconditionally, because APIs and types can't change based on config.
+// This is called when a time-request succeeds or when we get a downlink
+// without time request, "completing" the pending time request.
+typedef void LMIC_ABI_STD lmic_request_network_time_cb_t(void *pUserData, int flagSuccess);
+
+// how the network represents time.
+typedef u4_t lmic_gpstime_t;
+
+// rather than deal with 1/256 second tick, we adjust ostime back
+// (as it's high res) to match tNetwork.
+typedef struct lmic_time_reference_s lmic_time_reference_t;
+
+struct lmic_time_reference_s {
+    // our best idea of when we sent the uplink (end of packet).
+    ostime_t tLocal;
+    // the network's best idea of when we sent the uplink.
+    lmic_gpstime_t tNetwork;
+};
+
+enum lmic_request_time_state_e {
+    lmic_RequestTimeState_idle = 0,     // we're not doing anything
+    lmic_RequestTimeState_tx,           // we want to tx a time request on next uplink
+    lmic_RequestTimeState_rx,           // we have tx'ed, next downlink completes.
+    lmic_RequestTimeState_success       // we sucessfully got time.
+};
+
+typedef u1_t lmic_request_time_state_t;
+
 struct lmic_t {
     // Radio settings TX/RX (also accessed by HAL)
     ostime_t    txend;
@@ -256,11 +288,12 @@ struct lmic_t {
 
     u4_t        freq;
     s1_t        rssi;
-    s1_t        snr;
+    s1_t        snr;            // LMIC.snr is SNR times 4
     rps_t       rps;
     u1_t        rxsyms;
     u1_t        dndr;
-    s1_t        txpow;     // dBm
+    s1_t        txpow;          // transmit dBm (administrative)
+    s1_t	radio_txpow;    // the radio driver's copy of txpow, limited by adrTxPow.
 
     osjob_t     osjob;
 
@@ -308,6 +341,14 @@ struct lmic_t {
     devaddr_t   devaddr;
     u4_t        seqnoDn;      // device level down stream seqno
     u4_t        seqnoUp;
+#if LMIC_ENABLE_DeviceTimeReq
+    // put here for alignment, to reduce RAM use.
+    ostime_t    localDeviceTime;    // the LMIC.txend value for last DeviceTimeAns
+    lmic_gpstime_t netDeviceTime;   // the netDeviceTime for lastDeviceTimeAns
+                                    // zero ==> not valid.
+    lmic_request_network_time_cb_t *pNetworkTimeCb;	// call-back routine
+    void        *pNetworkTimeUserData; // call-back data
+#endif // LMIC_ENABLE_DeviceTimeReq
 
     u1_t        dnConf;       // dn frame confirm pending: LORA::FCT_ACK or 0
     s1_t        adrAckReq;    // counter until we reset data rate (0=off)
@@ -318,6 +359,7 @@ struct lmic_t {
     u1_t        margin;
     bit_t       ladrAns;      // link adr adapt answer pending
     bit_t       devsAns;      // device status answer pending
+    s1_t        devAnsMargin; // SNR value between -32 and 31 (inclusive) for the last successfully received DevStatusReq command
     u1_t        adrEnabled;
     u1_t        moreData;     // NWK has more data pending
 #if !defined(DISABLE_MCMD_DCAP_REQ)
@@ -329,6 +371,10 @@ struct lmic_t {
 #if LMIC_ENABLE_TxParamSetupReq
     bit_t       txParamSetupAns; // transmit setup answer pending.
     u1_t        txParam;        // the saved TX param byte.
+#endif
+#if LMIC_ENABLE_DeviceTimeReq
+    lmic_request_time_state_t txDeviceTimeReqState;  // current state, initially idle.
+    u1_t        netDeviceTimeFrac;     // updated on any DeviceTimeAns.
 #endif
 
     // rx1DrOffset is the offset from uplink to downlink datarate
@@ -417,6 +463,9 @@ void LMIC_setClockError(u2_t error);
 u4_t LMIC_getSeqnoUp    (void);
 u4_t LMIC_setSeqnoUp    (u4_t);
 void LMIC_getSessionKeys (u4_t *netid, devaddr_t *devaddr, xref2u1_t nwkKey, xref2u1_t artKey);
+
+void LMIC_requestNetworkTime(lmic_request_network_time_cb_t *pCallbackfn, void *pUserData);
+int LMIC_getNetworkTimeReference(lmic_time_reference_t *pReference);
 
 // Declare onEvent() function, to make sure any definition will have the
 // C conventions, even when in a C++ file.

@@ -1,5 +1,4 @@
-Arduino-LMIC library
-====================
+# Arduino-LMIC library
 
 This repository contains the IBM LMIC (LoraMAC-in-C) library, slightly
 modified to run in the Arduino environment, allowing using the SX1272,
@@ -16,19 +15,26 @@ The [MCCI arduino-lorawan](https://github.com/mcci-catena/arduino-lorawan) libra
 This library requires Arduino IDE version 1.6.6 or above, since it
 requires C99 mode to be enabled by default.
 
-[![GitHub release](https://img.shields.io/github/release/mcci-catena/arduino-lmic.svg)](https://github.com/mcci-catena/arduino-lmic/releases/latest) [![GitHub commits](https://img.shields.io/github/commits-since/mcci-catena/arduino-lmic/latest.svg)](https://github.com/mcci-catena/arduino-lmic/compare/V2.1.5...master) [![Build Status](https://travis-ci.org/mcci-catena/arduino-lmic.svg?branch=master)](https://travis-ci.org/mcci-catena/arduino-lmic)
+[![GitHub release](https://img.shields.io/github/release/mcci-catena/arduino-lmic.svg)](https://github.com/mcci-catena/arduino-lmic/releases/latest) [![GitHub commits](https://img.shields.io/github/commits-since/mcci-catena/arduino-lmic/latest.svg)](https://github.com/mcci-catena/arduino-lmic/compare/v2.3.2...master) [![Build Status](https://travis-ci.com/mcci-catena/arduino-lmic.svg?branch=master)](https://travis-ci.com/mcci-catena/arduino-lmic)
 
 **Contents:**
 
 <!--
   This TOC uses the VS Code markdown TOC extension AlanWalk.markdown-toc.
   We strongly recommend updating using VS Code, the markdown-toc extension and the
-  bierner.markdown-preview-github-styles extension.
+  bierner.markdown-preview-github-styles extension. Note that if you are using
+  VS Code 1.29 and Markdown TOC 1.5.6, https://github.com/AlanWalk/markdown-toc/issues/65
+  applies -- you must change your line-ending to some non-auto value in Settings>
+  Text Editor>Files.  `\n` works for me.
 -->
-<!-- TOC depthFrom:1 -->
+<!-- TOC depthFrom:2 updateOnSave:true -->
 
 - [Installing](#installing)
 - [Features](#features)
+- [Additional Documentation](#additional-documentation)
+	- [PDF/Word Documentation](#pdfword-documentation)
+	- [Adding Bandplans](#adding-bandplans)
+	- [Known bugs and issues](#known-bugs-and-issues)
 - [Configuration](#configuration)
 	- [Selecting the LoRaWAN Region Configuration](#selecting-the-lorawan-region-configuration)
 		- [eu868, as923, in866](#eu868-as923-in866)
@@ -37,6 +43,7 @@ requires C99 mode to be enabled by default.
 	- [Controlling use of interrupts](#controlling-use-of-interrupts)
 	- [Disabling PING](#disabling-ping)
 	- [Disabling Beacons](#disabling-beacons)
+	- [Enabling Network Time Support](#enabling-network-time-support)
 	- [Rarely changed variables](#rarely-changed-variables)
 		- [Changing debug output](#changing-debug-output)
 		- [Getting debug from the RF library](#getting-debug-from-the-rf-library)
@@ -49,7 +56,8 @@ requires C99 mode to be enabled by default.
 		- [Disabling Class B MAC commands](#disabling-class-b-mac-commands)
 		- [Special purpose](#special-purpose)
 - [Supported hardware](#supported-hardware)
-- [Connections](#connections)
+- [Pre-Integrated Boards](#pre-integrated-boards)
+- [Manual configuration](#manual-configuration)
 	- [Power](#power)
 	- [SPI](#spi)
 	- [DIO pins](#dio-pins)
@@ -57,13 +65,20 @@ requires C99 mode to be enabled by default.
 	- [RXTX](#rxtx)
 	- [RXTX Polarity](#rxtx-polarity)
 	- [Pin mapping](#pin-mapping)
-		- [Adafruit Feather M0 LoRa](#adafruit-feather-m0-lora)
 		- [LoRa Nexus by Ideetron](#lora-nexus-by-ideetron)
-		- [MCCI Catena 4450/4460](#mcci-catena-44504460)
-		- [MCCI Catena 4551](#mcci-catena-4551)
 - [Example Sketches](#example-sketches)
 - [Timing](#timing)
+	- [`LMIC_setClockError()`](#lmic_setclockerror)
 - [Downlink datarate](#downlink-datarate)
+- [Encoding Utilities](#encoding-utilities)
+	- [sflt16](#sflt16)
+		- [JavaScript decoder](#javascript-decoder)
+	- [uflt16](#uflt16)
+		- [JavaScript decoder](#javascript-decoder-1)
+	- [sflt12](#sflt12)
+		- [JavaScript decoder](#javascript-decoder-2)
+	- [uflt12](#uflt12)
+		- [JavaScript decoder](#javascript-decoder-3)
 - [Release History](#release-history)
 - [Contributions](#contributions)
 - [Trademark Acknowledgements](#trademark-acknowledgements)
@@ -71,18 +86,18 @@ requires C99 mode to be enabled by default.
 
 <!-- /TOC -->
 
-縺薙�ｮ繝ｩ繧､繝悶Λ繝ｪ縺ｯ縲ーhttps://github.com/mcci-catena/arduino-lmic]縲縺薙■繧峨�ｮ繧ｽ繝ｼ繧ｹ繧ｳ繝ｼ繝峨ｒDragino遉ｾ陬ｽLoRa繧ｲ繝ｼ繝医え繧ｧ繧､LG01逕ｨ縺ｫ謾ｹ螟峨＠縺溘ｂ縺ｮ縺ｫ縺ｪ繧翫∪縺吶�
+このライブラリは、[https://github.com/mcci-catena/arduino-lmic]　こちらのソースコードをDragino社製LoRaゲートウェイLG01用に改変したものになります。  
 
 ## Installing
 
 To install this library:
 
- - install it using the Arduino Library manager ("Sketch" -> "Include
+- install it using the Arduino Library manager ("Sketch" -> "Include
    Library" -> "Manage Libraries..."), or
- - download a zipfile from github using the "Download ZIP" button and
+- download a zipfile from github using the "Download ZIP" button and
    install it using the IDE ("Sketch" -> "Include Library" -> "Add .ZIP
    Library..."
- - clone this git repository into your sketchbook/libraries folder.
+- clone this git repository into your sketchbook/libraries folder.
 
 For more info, see https://www.arduino.cc/en/Guide/Libraries
 
@@ -96,22 +111,36 @@ The library has only been tested with LoRaWAN 1.0.2 networks and does not have t
 
 What certainly works:
 
- - Sending packets uplink, taking into account duty cycling.
- - Encryption and message integrity checking.
- - Receiving downlink packets in the RX2 window.
- - Custom frequencies and datarate settings.
- - Over-the-air activation (OTAA / joining).
- - Receiving downlink packets in the RX1 and RX2 windows.
- - Some MAC command processing.
+- Sending packets uplink, taking into account duty cycling.
+- Encryption and message integrity checking.
+- Receiving downlink packets in the RX2 window.
+- Custom frequencies and datarate settings.
+- Over-the-air activation (OTAA / joining).
+- Receiving downlink packets in the RX1 and RX2 windows.
+- Some MAC command processing.
 
 What has not been tested:
 
- - Receiving and processing all MAC commands.
- - Class B operation.
- - FSK has not been extensively tested.
+- Receiving and processing all MAC commands.
+- Class B operation.
+- FSK has not been extensively tested.
 
 If you try one of these untested features and it works, be sure to let
 us know (creating a github issue is probably the best way for that).
+
+## Additional Documentation
+
+### PDF/Word Documentation
+
+The `doc` directory contains [LMiC-v2.3.pdf](doc/LMiC-v2.3.pdf), which documents the library APIs and use. It's based on the original IBM documentation, but has been adapted for this version of the library. However, as this library is used for more than Arduino, that document is supplemented by practical details in this document.
+
+### Adding Bandplans
+
+There is a general framework for adding new region support. [HOWTO-ADD-REGION.md](./HOWTO-ADD-REGION.md) has step-by-step instructions for adding a region.
+
+### Known bugs and issues
+
+See the list of bugs at [mcci-catena/arduino-lmic](https://github.com/mcci-catena/arduino-lmic/issues).
 
 ## Configuration
 
@@ -122,7 +151,7 @@ directory is the only directory that contains files that you
 should edit to match your project; we organize things this way
 so that your local changes are more clearly separated from
 the distribution files. The Arduino environment doesn't give
-us a better way to do this.
+us a better way to do this, unless you change `BOARDS.txt`.
 
 Unlike other ports of the LMIC code, in this port, you should not edit `src/lmic/config.h` to configure this package.
 
@@ -138,6 +167,7 @@ The library supports the following regions:
 `-D CFG_us915` | `LMIC_REGION_us915` | 2 | 2.2 | US 902-928 MHz ISM
 `-D CFG_au921` | `LMIC_REGION_au921` | 5 | 2.5 | Australia 915-928 MHz ISM
 `-D CFG_as923` | `LMIC_REGION_as923` | 7 | 2.7 | Asia 923 MHz ISM
+`-D CFG_as923jp` | `LMIC_REGION_as923` and `LMIC_COUNTRY_CODE_JP` | 7 | 2.7 | Asia 923 MHz ISM  with Japan listen-before-talk (LBT) rules
 `-D CFG_in866` | `LMIC_REGION_in866` | 9 | 2.9 | India 865-867 MHz ISM
 
 You should define exactly one of `CFG_...` variables. If you don't,
@@ -178,13 +208,13 @@ Configures the library for use with an sx1276 transceiver.
 
 `#define LMIC_USE_INTERRUPTS`
 
-If defined, configures the library to use interrupts for detecting events from the transceiver. If left undefined, the library will poll for events from the transceiver.  `LMIC_USE_INTERRUPTS` is not currently tested.
+If defined, configures the library to use interrupts for detecting events from the transceiver. If left undefined, the library will poll for events from the transceiver.  See [Timing](#timing) for more info.
 
 ### Disabling PING
 
 `#define DISABLE_PING`
 
-If defined, removes all code needed for PING.  Removes the APIs `LMIC_setPingable()` and `LMIC_stopPingable()`.
+If defined, removes all code needed for Class B downlink during ping slots (PING).  Removes the APIs `LMIC_setPingable()` and `LMIC_stopPingable()`.
 Class A devices don't support PING, so defining `DISABLE_PING` is often a good idea.
 
 By default, PING support is included in the library.
@@ -194,10 +224,20 @@ By default, PING support is included in the library.
 `#define DISABLE_BEACONS`
 
 If defined, removes all code needed for handling beacons. Removes the APIs `LMIC_enableTracking()` and `LMIC_disableTracking()`.
-Class A devices don't support beacons, so defining `DISABLE_BEACONS` might be a good idea.
 
+Enabling beacon handling allows tracking of network time, and is required if you want to enable downlink during ping slots. However, many networks don't support Class B devices. Class A devices don't support tracking beacons, so defining `DISABLE_BEACONS` might be a good idea.
 
-### Rarely changed variables ###
+By default, beacon support is included in the library.
+
+### Enabling Network Time Support
+
+`#define LMIC_ENABLE_DeviceTimeReq	number	/* boolean: 0 or non-zero */`
+
+Disable or enable support for device network-time requests (LoRaWAN MAC request 0x0D). If zero, support is disabled. If non-zero, support is enabled.
+
+If disabled, stub routines are provided that will return failure (so you don't need conditional compiles in client code).
+
+### Rarely changed variables
 
 The remaining variables are rarely used, but we list them here for completeness.
 
@@ -269,7 +309,7 @@ commands.
 
 `DISABLE_MCMD_PING_SET` disables the PING_SET MAC commands. It's implied by `DISABLE_PING`.
 
-`DISABLE_MCMD_BCNI_ANS` disables the next-beacon start command. I'ts implied by `DISABLE_BEACON'
+`DISABLE_MCMD_BCNI_ANS` disables the next-beacon start command. It's implied by `DISABLE_BEACON`
 
 #### Special purpose
 
@@ -295,10 +335,7 @@ LoRaWAN stack and exposes a high-level serial interface instead of the
 low-level SPI transceiver interface.
 
 This library is intended to be used inside the Arduino environment. It
-should be architecture-independent, so it should run on "normal" AVR
-arduinos, but also on the ARM-based ones, and some success has been seen
-running on the ESP8266 board as well. It was tested on the Arduino Uno,
-Pinoccio Scout, Teensy LC and 3.x, ESP8266, Arduino 101, Adafruit Feather M0 LoRa 900. It has been tested on the Lattice RISC-V CPU soft core running in an iCE40 UltraPlus, and also on the Murata LoRaWAN module on the MCCI Catena 4551.
+should be architecture-independent. Users have tested this on AVR, ARM, Xtensa-based, and RISC-V based system.
 
 This library an be quite heavy on small systems, especially if the fairly small ATmega
 328p (such as in the Arduino Uno) is used. In the default configuration,
@@ -307,19 +344,36 @@ debug output overhead, though). By disabling some features in `project_settings/
 (like beacon tracking and ping slots, which are not needed for Class A devices),
 some space can be freed up.
 
-## Connections
+## Pre-Integrated Boards
 
-To make this library work, your Arduino (or whatever Arduino-compatible
-board you are using) should be connected to the transceiver. In some cases (such as the Adafruit Feather series and Murata-based boards such as the MCCI Catena 4551), the settings are fixed by the board, and you won't have to worry about many of these details. However, you'll need to find the configuration that's suitable for your board.
+There are two ways of using this library, either with pre-integrated boards or with manualy configured boards.
+
+The following boards are pre-integrated.
+
+- Adafruit [Feather 32u4 LoRa 900 MHz][1] (SX1276)
+- Adafruit [Feather M0 LoRa 900 MHz][2] (SX1276)
+- MCCI Catena 4410, 4420, [4450][3], [4460][4] and [4470][5] boards (based on Adafruit Feather boards plus wings) (SX1276)
+- MCCI Catena [4551][6], 4610, 4611, 4612, and 4801 boards (based on the Murata CMWX1ZZABZ-078 module) (SX1276)
+
+[1]: https://www.adafruit.com/products/3078
+[2]: https://www.adafruit.com/products/3178
+[3]: https://store.mcci.com/collections/lorawan-iot-and-the-things-network/products/catena-4450-lorawan-iot-device
+[4]: https://store.mcci.com/collections/lorawan-iot-and-the-things-network/products/catena-4460-sensor-wing-w-bme680
+[5]: https://store.mcci.com/collections/lorawan-iot-and-the-things-network/products/mcci-catena-4470-modbus-node-for-lorawan-technology
+[6]: https://store.mcci.com/collections/lorawan-iot-and-the-things-network/products/catena-4551-integrated-lorawan-node
 
 > To help you know if you have to worry, we'll call such boards "pre-integrated" and prefix each section with suitable guidance.
 
-The exact
+## Manual configuration
+
+If your desired transceiver board is not pre-integrated, you need to provide the library with the reqruied information.
+
+You may need to wire up your transceiver. The exact
 connections are a bit dependent on the transceiver board and Arduino
 used, so this section tries to explain what each connection is for and
 in what cases it is (not) required.
 
-Note that the SX1272 module runs at 3.3V and likely does not like 5V on
+Note that the SX127x module runs at 3.3V and likely does not like 5V on
 its pins (though the datasheet is not say anything about this, and my
 transceiver did not obviously break after accidentally using 5V I/O for
 a few hours). To be safe, make sure to use a level shifter, or an
@@ -329,7 +383,7 @@ count on that.
 
 ### Power
 
-> If you're using a pre-integrated board, you can skip this section.
+> If you're using a [pre-integrated board](#pre-integrated-boards), you can skip this section.
 
 The SX127x transceivers need a supply voltage between 1.8V and 3.9V.
 Using a 3.3V supply is typical. Some modules have a single power pin
@@ -340,7 +394,7 @@ Any *GND* pins need to be connected to the Arduino *GND* pin(s).
 
 ### SPI
 
-> If you're using a pre-integrated board, you can skip this section, and instead refer to your board's documentation on the pins to be used.
+> If you're using a [pre-integrated board](#pre-integrated-boards), you can skip this section.
 
 The primary way of communicating with the transceiver is through SPI
 (Serial Peripheral Interface). This uses four pins: MOSI, MISO, SCK and
@@ -361,7 +415,7 @@ library what pin you used through the pin mapping (see [below](#pin-mapping)).
 
 ### DIO pins
 
-> If you're using a pre-integrated board, you can ignore this section; refer to your board's documentation for information on what DIO pins need to be used.
+> If you're using a [pre-integrated board](#pre-integrated-boards), you can skip this section.
 
 The DIO (digital I/O) pins on the SX127x can be configured
 for various functions. The LMIC library uses them to get instant status
@@ -372,9 +426,10 @@ which can be detected by the LMIC library.
 
 The LMIC library needs only access to DIO0, DIO1 and DIO2, the other
 DIOx pins can be left disconnected. On the Arduino side, they can
-connect to any I/O pin, since the current implementation does not use
-interrupts or other special hardware features (though this might be
-added in the feature, see also the "Timing" section).
+connect to any I/O pin. If interrupts are used, the accuracy of timing
+will be improved, particularly the rest of your `loop()` function has
+lengthy calculations; but in that case, the enabled DIO pins must all
+support rising-edge interrupts. See the [Timing](#timing) section below.
 
 In LoRa mode the DIO pins are used as follows:
  * DIO0: TxDone and RxDone
@@ -394,7 +449,7 @@ mapping in your sketch, by setting the values of `lmic_pinmap::dio[0]`, `[1]`, a
 
 ### Reset
 
-> If you're using a pre-configured module, refer to the documentation for your board.
+> If you're using a [pre-integrated board](#pre-integrated-boards), you can skip this section.
 
 The transceiver has a reset pin that can be used to explicitly reset
 it. The LMIC library uses this to ensure the chip is in a consistent
@@ -403,11 +458,11 @@ the transceiver will already be in a sane state on power-on, but
 connecting it might prevent problems in some cases.
 
 On the Arduino side, any I/O pin can be used. The pin number used must
-be configured in the pin mapping `lmic_pinmap::rst` field (see [below(#pin-mapping)]).
+be configured in the pin mapping `lmic_pinmap::rst` field (see [below](#pin-mapping)).
 
 ### RXTX
 
-> If you're using a pre-configured module, refer to the documentation for your board.
+> If you're using a [pre-integrated board](#pre-integrated-boards), you can skip this section.
 
 The transceiver contains two separate antenna connections: One for RX
 and one for TX. A typical transceiver board contains an antenna switch
@@ -436,21 +491,25 @@ The configuration entry `lmic_pinmap::rxtx` configures the pin to be used for th
 
 ### RXTX Polarity
 
+> If you're using a [pre-integrated board](#pre-integrated-boards), you can skip this section.
+
 If an external switch is used, you also must specify the polarity. Some modules want *RXTX* to be high for transmit, low for receive; Others want it to be low for transmit, high for receive. The Murata module, for example, requires that *RXTX* be *high* for receive, *low* for transmit.
 
 The configuration entry `lmic_pinmap::rxtx_rx_active` should be set to the state to be written to the *RXTX* pin to make the receiver active. The opposite state is written to make the transmitter active. If `lmic_pinmap::rxtx` is `LMIC_UNUSED_PIN`, then the value of `lmic_pinmap::rxtx_rx_active` is ignored.
 
 ### Pin mapping
 
-> For pre-configured boards, refer to the documentation on your board for the required settings. See the following:
->
-> - [Adafruit Feather M0 LoRa](#adafruit-feather-m0-lora)
-> - [LoRa Nexus by Ideetron](#lora-nexus-by-ideetron)
-> - [MCCI Catena 4450/4460](#mcci-catena-44504460)
-> - [MCCI Catena 4551](#mcci-catena-4551)
+> If you're using a [pre-integrated board](#pre-integrated-boards), you can skip this section.
 
-If you don't have the board documentation, you need to provide your own `lmic_pinmap` values. As described above, a variety of configurations are possible. To tell the LMIC library how your board is configured, a pin mapping struct
-is used in the sketch file.
+Refer to the documentation on your board for the required settings.
+
+Remember, for pre-integrated boards, you don't worry about this.
+
+We have details for the following manually-configured boards here:
+
+- [LoRa Nexus by Ideetron](#lora-nexus-by-ideetron)
+
+If you don't have the board documentation, you need to provide your own `lmic_pinmap` values. As described above, a variety of configurations are possible. To tell the LMIC library how your board is configured, you must declare a variable containing a pin mapping struct in the sketch file.
 
 For example, this could look like this:
 
@@ -462,6 +521,12 @@ For example, this could look like this:
     .dio = {2, 3, 4},
     // optional: set polarity of rxtx pin.
     .rxtx_rx_active = 0,
+    // optional: set RSSI cal for listen-before-talk
+    // this value is in dB, and is added to RSSI
+    // measured prior to decision.
+    // Must include noise guardband! Ignored in US,
+    // EU, IN, other markets where LBT is not required.
+    .rssi_cal = 0,
     // optional: override LMIC_SPI_FREQ if non-zero
     .spi_freq = 0,
   };
@@ -475,30 +540,9 @@ respectively. Any pins that are not needed should be specified as
 potentially left out (depending on the environments and requirements,
 see the notes above for when a pin can or cannot be left out).
 
-The name of this struct must always be `lmic_pins`, which is a special name
-recognized by the library.
+The name of the variable containing this struct must always be `lmic_pins`, which is a special name recognized by the library.
 
-#### Adafruit Feather M0 LoRa
-
-See [Feather M0 LoRa](https://www.adafruit.com/product/3178).
-This board uses the following pin mapping, as shown in the various "...-feather"
-sketches.
-
-DIO0 is hard-wired by Adafruit to Arduino D3, but DIO1 is not
-connected to any Arduino pin (it comes to JP1 pin 1, but is not otherwise connected). This pin table
-assumes that you have manually wired JP1 pin 1 to Arduino JP3 pin 9 (Arduino D6).
-
-DIO2 is not connected.
-
-```c++
-const lmic_pinmap lmic_pins = {
-    .nss = 8,
-    .rxtx = LMIC_UNUSED_PIN,
-    .rst = 4,
-    .dio = {3, 6, LMIC_UNUSED_PIN},
-};
-```
-
+<!-- there are links to the following section, so be careful when renaming -->
 #### LoRa Nexus by Ideetron
 
 This board uses the following pin mapping:
@@ -512,92 +556,94 @@ This board uses the following pin mapping:
   };
 ```
 
-#### MCCI Catena 4450/4460
-
-See [MCCI Catena 4450](https://store.mcci.com/collections/lorawan-iot-and-the-things-network/products/catena-4450-lorawan-iot-device) and [MCCI Catena 4460](https://store.mcci.com/collections/lorawan-iot-and-the-things-network/products/catena-4460-sensor-wing-w-bme680).
-
-These modules are based on the [Feather M0 LoRa](https://www.adafruit.com/product/3178). Since they include an extra Feather wing for the sensors, the Feather wing includes the trace connecting DIO1 to Arduino D6. No user wiring is needed on the Feather M0.
-
-```c++
-const lmic_pinmap lmic_pins = {
-    .nss = 8,
-    .rxtx = LMIC_UNUSED_PIN,
-    .rst = 4,
-    .dio = {3, 6, LMIC_UNUSED_PIN},
-};
-```
-
-#### MCCI Catena 4551
-
-See [MCCI Catena 4551](https://store.mcci.com/collections/lorawan-iot-and-the-things-network/products/catena-4551-integrated-lorawan-node).
-This board uses a Murata LoRa module and has the following pin mapping:
-
-```c++
-const lmic_pinmap lmic_pins = {
-    .nss = 7,
-    .rxtx = 29,
-    .rst = 8,
-    .dio = {25, 26, 27},
-    // the Murata module needs D29 high for RX, low for TX.
-    .rxtx_rx_active = 1,
-    // the Murata module is direct-wired, we can use 8 MHz for SPI.
-    .spi_freq = 8000000
-};
-```
-
 ## Example Sketches
 
-This library currently provides several examples:
+This library provides several examples.
 
- - `ttn-abp.ino` shows a basic transmission of a "Hello, world!" message
+ - [`ttn-otaa.ino`](examples/ttn-otaa/ttn-otaa.ino) shows a basic transmission of a "Hello, world!" message
    using the LoRaWAN protocol. It contains some frequency settings and
    encryption keys intended for use with The Things Network, but these
    also correspond to the default settings of most gateways, so it
-   should work with other networks and gateways as well. This example
-   uses activation-by-personalization (ABP, preconfiguring a device
-   address and encryption keys), and does not employ over-the-air
-   activation.
-
-   Reception of packets (in response to transmission, using the RX1 and
-   RX2 receive windows is also supported).
-
- - `ttn-otaa.ino` also sends a "Hello, world!" message, but uses over
-   the air activation (OTAA) to first join a network to establish a
+   should work with other networks and gateways as well.
+   The example uses over-the-air activation (OTAA) to first join the network to establish a
    session and security keys. This was tested with The Things Network,
    but should also work (perhaps with some changes) for other networks.
+   OTAA is the preferred way to work with production LoRaWAN networks.
 
- - `raw.ino` shows how to access the radio on a somewhat low level,
+ - [`ttn-otaa-feather-us915.ino`](examples/ttn-otaa-feather-us915/ttn-otaa-feather-us915.ino) is a version of `ttn-otaa.ino` that has
+   been configured for use with the Feather M0 LoRa, on the US915 bandplan,
+   with The Things Network. Remember that you may also have to change `config.h`
+   from defaults. This sketch also works with the MCCI Catena family of products
+   as well as with the Feather 32u4 LoRa.
+
+ - [`ttn-otaa-feather-us915-dht22.ino`](examples/ttn-otaa-feather-us915-dht22/ttn-otaa-feather-us915-dht22.ino)
+   is a further refinement of `ttn-otaa-feather-us915.ino`. It measures and
+   transmits temperature and relative humidity using a DHT22 sensor. It's only
+   been tested with Feather M0-family products.
+
+ - [`raw.ino`](examples/raw/raw.ino) shows how to access the radio on a somewhat low level,
    and allows to send raw (non-LoRaWAN) packets between nodes directly.
    This is useful to verify basic connectivity, and when no gateway is
    available, but this example also bypasses duty cycle checks, so be
    careful when changing the settings.
 
- - `raw-feather.ino` is a version of `raw.ino` that is completely configured
-   for the Adafruit [Feather M0 LoRa](https://www.adafruit.com/product/3178)
+ - [`raw-feather.ino`](examples/raw-feather/raw-feather.ino) is a version of `raw.ino` that is completely configured
+   for the Adafruit [Feather M0 LoRa](https://www.adafruit.com/product/3178), and for a variety
+   of other MCCI products.
 
- - `ttn-otaa-feather-us915.ino` is a version of `ttn-otaa.ino` that has
-   been configured for use with the Feather M0 LoRa, on the US915 bandplan,
-   with The Things Network. Remember that you may also have to change `config.h`
-   from defaults.
+ - [`ttn-abp.ino`](examples/ttn-abp/ttn-abp.ino) shows a basic transmission of a "Hello, world!" message
+   using the LoRaWAN protocol. This example
+   uses activation-by-personalization (ABP, preconfiguring a device
+   address and encryption keys), and does not employ over-the-air
+   activation.
+
+   ABP should not be used if you have access to a production gateway and network; it's
+   not compliant with LoRaWAN standards, it's not FCC compliant, and it's uses spectrum
+   in a way that's unfair to other users. However, it's often the most economical way to
+   get your feet wet with this technology. It's possible to do ABP compliantly with the LMIC
+   framework, but you need to have FRAM storage and a framework that saves uplink and
+   downlink counts across reboots and resets. See, for example,
+   [Catena-Arduino-Platform](https://github.com/mcci-catena/Catena-Arduino-Platform).
+
+ - [`ttn-abp-feather-us915-dht22.ino`](examples/ttn-abp-feather-us915-dht22/ttn-abp-feather-us915-dht22.ino)
+   refines `ttn-abp.ino` by configuring for use with the Feather M0 LoRa on the US915 bandplan,
+   with a single-channel gateway on The Things Network; it measures and transmits temperature and relative
+   humidity using a DHT22 sensor. It's only been tested with Feather M0-family products.
+
+   ABP should not be used if you have access to a production gateway and network; it's
+   not compliant with LoRaWAN standards, it's not FCC compliant, and it's uses spectrum
+   in a way that's unfair to other users. However, it's often the most economical way to
+   get your feet wet with this technology.  It's possible to do ABP compliantly with the LMIC
+   framework, but you need to have FRAM storage and a framework that saves uplink and
+   downlink counts across reboots and resets. See, for example,
+   [Catena-Arduino-Platform](https://github.com/mcci-catena/Catena-Arduino-Platform).
+
+ - [`header_test.ino`](examples/header_test/header_test.ino) just tests the header files; it's used for regression testing.
 
 ## Timing
 
-Unfortunately, the SX127x transceivers do not support accurate
-timekeeping themselves (there is a sequencer that is *almost* sufficient
-for timing the RX1 and RX2 downlink windows, but that is only available
-in FSK mode, not in LoRa mode). This means that the microcontroller is
-responsible for keeping track of time. In particular, it should note
-when a packet finished transmitting, so it can open up the RX1 and RX2
-receive windows at a fixed time after the end of transmission.
+The library is
+responsible for keeping track of time of certain network events, and scheduling
+other events relative to those events. In particular, the library must note
+when a packet finishes transmitting, so it can open up the RX1 and RX2
+receive windows at a fixed time after the end of transmission. The library does this
+by watching for rising edges on the DIO0 output of the SX127x, and noting the time.
 
-This timing uses the Arduino `micros()` timer, which has a granularity
-of 4ﾎｼs and is based on the primary microcontroller clock.  For timing
-events, the transceiver uses its DIOx pins as interrupt outputs. In the
-current implementation, these pins are handled by an interrupt handler,
-but only to set a flag - actual processing is done once every LMIC loop,
-resulting in a bit inaccuracy in the timestamping. Also, running
-scheduled jobs (such as opening up the receive windows) is done using a
-polling approach, which might also result in further delays.
+The library observes and processes rising edges on the pins as part of `os_runloop()` processing.
+This can be configured in one of two ways (see
+[Controlling use of interrupts](#controlling-use-of-interrupts)).
+
+By default, the routine `hal_io_check()`
+polls the enabled pins to determine whether an event has occured. This approach
+allows use of any CPU pin to sense the DIOs, and makes no assummptions about
+interrupts. However, it means that the end-of-transmit event is not observed
+(and time-stamped) until `os_runloop()` is called.
+
+Optionally, you can configure the LMIC library to use interrupts. The
+interrupt handlers capture the time of
+the event. Actual processing is done the next time that `os_runloop()`
+is called, using the captured time. However, this requires that the
+DIO pins be wired to Arduino pins that support rising-edge interrupts.
 
 Fortunately, LoRa is a fairly slow protocol and the timing of the
 receive windows is not super critical. To synchronize transmitter and
@@ -608,60 +654,63 @@ symbol times at 1.5 symbol after the start of the receive window,
 meaning that a inaccuracy of plus or minus 2.5 symbol times should be
 acceptable.
 
-At the fastest LoRa setting supported by the transceiver (SF5BW500) a
-single preamble symbol takes 64ﾎｼs, so the receive window timing should
-be accurate within 160ﾎｼs (for LoRaWAN this is SF7BW250, needing accuracy
-within 1280ﾎｼs). This is certainly within a crystal's accuracy, but using
-the internal oscillator is probably not feasible (which is 1% - 10%
-accurate, depending on calibration). This accuracy should also be
+The HAL bases all timing on the Arduino `micros()` timer, which has a platform-specific
+granularity, and is based on the primary microcontroller clock.
+
+At the fastest LoRa setting supported by the SX127x (SF5BW500) a
+single preamble symbol takes 64 microseconds, so the receive window timing should
+be accurate within 160 microseconds (for LoRaWAN this is SF7BW250, needing accuracy
+within 1280ﾎｼs). This accuracy should also be
 feasible with the polling approach used, provided that the LMIC loop is
 run often enough.
 
-It would be good to properly review this code at some point, since it
-seems that in some places some offsets and corrections are applied that
-might not be appropriate for the Arduino environment. So if reception is
-not working, the timing is something to have a closer look at.
-
-The LMIC library was intended to connect the DIO pins to interrupt
-lines and run code inside the interrupt handler. However, doing this
-opens up an entire can of worms with regard to doing SPI transfers
-inside interrupt routines (some of which is solved by the Arduino
-`beginTransaction()` API, but possibly not everything). One simpler
-alternative could be to use an interrupt handler to just store a
-timestamp, and then do the actual handling in the main loop (this
-requires modifications of the library to pass a timestamp to the LMIC
-`radio_irq_handler()` function).
+If using an internal oscillator (which is 1% - 10%
+accurate, depending on calibration), or if your other `loop()` processing
+is time consuming, you may have to use [`LMIC_setClockError()`](#lmic_setclockerror)
+to cause the library to leave the radio on longer.
 
 An even more accurate solution could be to use a dedicated timer with an
 input capture unit, that can store the timestamp of a change on the DIO0
 pin (the only one that is timing-critical) entirely in hardware.
-Unfortunately, timer0, as used by Arduino's `millis()` and `micros()`
-functions does not seem to have an input capture unit, meaning a
-separate timer is needed for this.
+Experience shows that this is not normally required, so we leave this as
+a customization to be performed on a platform-by-platfom basis. We provide
+a special API, `radio_irq_handler_v2(u1_t dio, ostime_t tEvent)`. This
+API allows you to supply a hardware-captured time for extra accuracy.
 
-If the main microcontroller does not have a crystal, but uses the
-internal oscillator, the clock output of the transceiver (on DIO5) could
-be usable to drive this timer instead of the main microcontroller clock,
-to ensure the receive window timing is sufficiently accurate. Ideally,
-this would use timer2, which supports asynchronous mode (e.g. running
-while the microcontroller is sleeping), but that timer does not have an
-input capture unit. Timer1 has one, but it seems it will stop running
-once the microcontroller sleeps. Running the microcontroller in idle
-mode with a slower clock might be feasible, though. Instead of using the
-main crystal oscillator of the transceiver, it could be possible to use
-the transceiver's internal RC oscillator (which is calibrated against
-the transceiver crystal), or to calibrate the microcontroller internal
-RC oscillator using the transceiver's clkout. However, that datasheet is
-a bit vague on the RC oscillator's accuracy and how to use it exactly
-(some registers seem to be FSK-mode only), so this needs some
-experiments.
+The practical consequence of inaccurate timing is reduced battery life;
+the LMIC must turn on the reciever earlier in order to be sure to capture downlink packets.
+
+### `LMIC_setClockError()`
+
+You may call this routine during intialization to infom the LMIC code about the timing accuracy of your system.
+
+```c++
+enum { MAX_CLOCK_ERROR = 65535 };
+
+void LMIC_setClockError(
+    u2_t error
+);
+```
+
+This function sets the anticipated relative clock error. `MAX_CLOCK_ERROR`
+represents +/- 100%, and 0 represents no additional clock compensation.
+To allow for an error of 20%, you would call
+
+```c++
+LMIC_setClockError(MAX_CLOCK_ERROR * 20 / 100);
+```
+
+Setting a high clock error causes the RX windows to be opened earlier than it otherwise would be. This causes more power to be consumed. For Class A devices, this extra power is not substantial, but for Class B devices, this can be significant.
+
+This clock error is not reset by `LMIC_reset()`.
 
 ## Downlink datarate
 
 Note that the datarate used for downlink packets in the RX2 window varies by region. Consult your network's manual for any divergences from the LoRaWAN Regional Parameters. This library assumes that the network follows the regional default.
 
-Some networks
-use different values than the specification. For example, in Europe, the specification default is DR0 (SF12, 125 kHz bandwidth). However, iot.semtech.com and The Things Network both used SF9 / 125 kHz or DR3). When using personalized activate (ABP), it is your
+Some networks use different values than the specification. For example, in Europe, the specification default is DR0 (SF12, 125 kHz bandwidth). However, iot.semtech.com and The Things Network both used SF9 / 125 kHz or DR3). If using over-the-air activation (OTAA), the network will download RX2 parameters as part of the JoinAccept message; the LMIC will honor the downloaded parameters.
+
+However, when using personalized activate (ABP), it is your
 responsibility to set the right settings, e.g. by adding this to your
 sketch (after calling `LMIC_setSession`). `ttn-abp.ino` already does
 this.
@@ -670,11 +719,324 @@ this.
 LMIC.dn2Dr = DR_SF9;
 ```
 
-When using OTAA, the network communicates the RX2 settings in the join accept message. This version of the LMIC library captures those settings. Therefore, you should not change the RX2 rate after joining.
+## Encoding Utilities
+
+It is generally important to make LoRaWAN messages as small as practical. Extra bytes mean extra transmit time, which wastes battery power and interferes with other nodes on the network.
+
+To simplify coding, the Arduino header file <lmic.h> defines some data encoding utility functions to encode floating-point data into `uint16_t` values using `sflt16` or `uflt16` bit layout. For even more efficiency, there are versions that use only the bottom 12 bits of the `uint16_t`, allowing for other bits to be carried in the top 4 bits, or for two values to be crammed into three bytes.
+
+- `uint16_t LMIC_f2sflt16(float)` converts a floating point number to a [`sflt16`](#sflt16)-encoded `uint16_t`.
+- `uint16_t LMIC_f2uflt16(float)` converts a floating-point number to a [`uflt16`](#uflt16)-encoded `uint16_t`.
+- `uint16_t LMIC_f2sflt12(float)` converts a floating-point number to a [`sflt12`](#sflt12)-encoded `uint16_t`, leaving the top four bits of the result set to zero.
+- `uint16_t LMIC_f2uflt12(float)` converts a floating-point number to a [`uflt12`](#sflt12)-encoded `uint16_t`, leaving the top four bits of the result set to zero.
+
+JavaScript code for decoding the data can be found in the following sections.
+
+### sflt16
+
+A `sflt16` datum represents an unsigned floating point number in the range [0, 1.0), transmitted as a 16-bit field. The encoded field is interpreted as follows:
+
+bits | description
+:---:|:---
+15 | Sign bit
+14..11 | binary exponent `b`
+10..0 | fraction `f`
+
+The corresponding floating point value is computed by computing `f`/2048 * 2^(`b`-15). Note that this format is deliberately not IEEE-compliant; it's intended to be easy to decode by hand and not overwhelmingly sophisticated. However, it is similar to IEEE format in that it uses sign-magnitude rather than twos-complement for negative values.
+
+For example, if the data value is 0x8D, 0x55, the equivalent floating point number is found as follows.
+
+1. The full 16-bit number is 0x8D55.
+2. Bit 15 is 1, so this is a negative value.
+3. `b`  is 1, and `b`-15 is -14.  2^-14 is 1/16384
+4. `f` is 0x555. 0x555/2048 = 1365/2048 is 0.667
+5. `f * 2^(b-15)` is therefore 0.667/16384 or 0.00004068
+6. Since the number is negative, the value is -0.00004068
+
+Floating point mavens will immediately recognize:
+
+* This format uses sign/magnitude representation for negative numbers.
+* Numbers do not need to be normalized (although in practice they always are).
+* The format is somewhat wasteful, because it explicitly transmits the most-significant bit of the fraction. (Most binary floating-point formats assume that `f` is is normalized, which means by definition that the exponent `b` is adjusted and `f` is shifted left until the most-significant bit of `f` is one. Most formats then choose to delete the most-significant bit from the encoding. If we were to do that, we would insist that the actual value of `f` be in the range 2048..4095, and then transmit only `f - 2048`, saving a bit. However, this complicates the handling of gradual underflow; see next point.)
+* Gradual underflow at the bottom of the range is automatic and simple with this encoding; the more sophisticated schemes need extra logic (and extra testing) in order to provide the same feature.
+
+#### JavaScript decoder
+
+```javascript
+function sflt162f(rawSflt16)
+	{
+	// rawSflt16 is the 2-byte number decoded from wherever;
+	// it's in range 0..0xFFFF
+	// bit 15 is the sign bit
+	// bits 14..11 are the exponent
+	// bits 10..0 are the the mantissa. Unlike IEEE format,
+	// 	the msb is explicit; this means that numbers
+	//	might not be normalized, but makes coding for
+	//	underflow easier.
+	// As with IEEE format, negative zero is possible, so
+	// we special-case that in hopes that JavaScript will
+	// also cooperate.
+	//
+	// The result is a number in the open interval (-1.0, 1.0);
+	//
+
+	// throw away high bits for repeatability.
+	rawSflt16 &= 0xFFFF;
+
+	// special case minus zero:
+	if (rawSflt16 == 0x8000)
+		return -0.0;
+
+	// extract the sign.
+	var sSign = ((rawSflt16 & 0x8000) != 0) ? -1 : 1;
+
+	// extract the exponent
+	var exp1 = (rawSflt16 >> 11) & 0xF;
+
+	// extract the "mantissa" (the fractional part)
+	var mant1 = (rawSflt16 & 0x7FF) / 2048.0;
+
+	// convert back to a floating point number. We hope
+	// that Math.pow(2, k) is handled efficiently by
+	// the JS interpreter! If this is time critical code,
+	// you can replace by a suitable shift and divide.
+	var f_unscaled = sSign * mant1 * Math.pow(2, exp1 - 15);
+
+	return f_unscaled;
+	}
+```
+
+### uflt16
+
+A `uflt16` datum represents an unsigned floating point number in the range [0, 1.0), transmitted as a 16-bit field. The encoded field is interpreted as follows:
+
+bits | description
+:---:|:---
+15..12 | binary exponent `b`
+11..0 | fraction `f`
+
+The corresponding floating point value is computed by computing `f`/4096 * 2^(`b`-15). Note that this format is deliberately not IEEE-compliant; it's intended to be easy to decode by hand and not overwhelmingly sophisticated.
+
+For example, if the transmitted message contains 0xEB, 0xF7, and the transmitted byte order is big endian, the equivalent floating point number is found as follows.
+
+1. The full 16-bit number is 0xEBF7.
+2. `b`  is therefore 0xE, and `b`-15 is -1.  2^-1 is 1/2
+3. `f` is 0xBF7. 0xBF7/4096 is 3063/4096 == 0.74780...
+4. `f * 2^(b-15)` is therefore 0.74780/2 or 0.37390
+
+Floating point mavens will immediately recognize:
+
+* There is no sign bit; all numbers are positive.
+* Numbers do not need to be normalized (although in practice they always are).
+* The format is somewhat wasteful, because it explicitly transmits the most-significant bit of the fraction. (Most binary floating-point formats assume that `f` is is normalized, which means by definition that the exponent `b` is adjusted and `f` is shifted left until the most-significant bit of `f` is one. Most formats then choose to delete the most-significant bit from the encoding. If we were to do that, we would insist that the actual value of `f` be in the range 4096..8191, and then transmit only `f - 4096`, saving a bit. However, this complicated the handling of gradual underflow; see next point.)
+* Gradual underflow at the bottom of the range is automatic and simple with this encoding; the more sophisticated schemes need extra logic (and extra testing) in order to provide the same feature.
+
+#### JavaScript decoder
+
+```javascript
+function uflt162f(rawUflt16)
+	{
+	// rawUflt16 is the 2-byte number decoded from wherever;
+	// it's in range 0..0xFFFF
+	// bits 15..12 are the exponent
+	// bits 11..0 are the the mantissa. Unlike IEEE format,
+	// 	the msb is explicit; this means that numbers
+	//	might not be normalized, but makes coding for
+	//	underflow easier.
+	// As with IEEE format, negative zero is possible, so
+	// we special-case that in hopes that JavaScript will
+	// also cooperate.
+	//
+	// The result is a number in the half-open interval [0, 1.0);
+	//
+
+	// throw away high bits for repeatability.
+	rawUflt16 &= 0xFFFF;
+
+	// extract the exponent
+	var exp1 = (rawUflt16 >> 12) & 0xF;
+
+	// extract the "mantissa" (the fractional part)
+	var mant1 = (rawUflt16 & 0xFFF) / 4096.0;
+
+	// convert back to a floating point number. We hope
+	// that Math.pow(2, k) is handled efficiently by
+	// the JS interpreter! If this is time critical code,
+	// you can replace by a suitable shift and divide.
+	var f_unscaled = mant1 * Math.pow(2, exp1 - 15);
+
+	return f_unscaled;
+	}
+```
+
+### sflt12
+
+A `sflt12` datum represents an signed floating point number in the range [0, 1.0), transmitted as a 12-bit field. The encoded field is interpreted as follows:
+
+bits | description
+:---:|:---
+11 | sign bit
+11..8 | binary exponent `b`
+7..0 | fraction `f`
+
+The corresponding floating point value is computed by computing `f`/128 * 2^(`b`-15). Note that this format is deliberately not IEEE-compliant; it's intended to be easy to decode by hand and not overwhelmingly sophisticated.
+
+For example, if the transmitted message contains 0x8, 0xD5, the equivalent floating point number is found as follows.
+
+1. The full 16-bit number is 0x8D5.
+2. The number is negative.
+3. `b` is 0x1, and `b`-15 is -14.  2^-14 is 1/16384
+4. `f` is 0x55. 0x55/128 is 85/128, or 0.66
+5. `f * 2^(b-15)` is therefore 0.66/16384 or 0.000041 (to two significant digits)
+6. The decoded number is therefore -0.000041.
+
+Floating point mavens will immediately recognize:
+
+* This format uses sign/magnitude representation for negative numbers.
+* Numbers do not need to be normalized (although in practice they always are).
+* The format is somewhat wasteful, because it explicitly transmits the most-significant bit of the fraction. (Most binary floating-point formats assume that `f` is is normalized, which means by definition that the exponent `b` is adjusted and `f` is shifted left until the most-significant bit of `f` is one. Most formats then choose to delete the most-significant bit from the encoding. If we were to do that, we would insist that the actual value of `f` be in the range 128 .. 256, and then transmit only `f - 128`, saving a bit. However, this complicates the handling of gradual underflow; see next point.)
+* Gradual underflow at the bottom of the range is automatic and simple with this encoding; the more sophisticated schemes need extra logic (and extra testing) in order to provide the same feature.
+* It can be strongly argued that dropping the sign bit would be worth the effort, as this would get us 14% more resolution for a minor amount of work.
+
+#### JavaScript decoder
+
+```javascript
+function sflt122f(rawSflt12)
+	{
+	// rawSflt12 is the 2-byte number decoded from wherever;
+	// it's in range 0..0xFFF (12 bits). For safety, we mask
+	// on entry and discard the high-order bits.
+	// bit 11 is the sign bit
+	// bits 10..7 are the exponent
+	// bits 6..0 are the the mantissa. Unlike IEEE format,
+	// 	the msb is explicit; this means that numbers
+	//	might not be normalized, but makes coding for
+	//	underflow easier.
+	// As with IEEE format, negative zero is possible, so
+	// we special-case that in hopes that JavaScript will
+	// also cooperate.
+	//
+	// The result is a number in the open interval (-1.0, 1.0);
+	//
+
+	// throw away high bits for repeatability.
+	rawSflt12 &= 0xFFF;
+
+	// special case minus zero:
+	if (rawSflt12 == 0x800)
+		return -0.0;
+
+	// extract the sign.
+	var sSign = ((rawSflt12 & 0x800) != 0) ? -1 : 1;
+
+	// extract the exponent
+	var exp1 = (rawSflt12 >> 7) & 0xF;
+
+	// extract the "mantissa" (the fractional part)
+	var mant1 = (rawSflt12 & 0x7F) / 128.0;
+
+	// convert back to a floating point number. We hope
+	// that Math.pow(2, k) is handled efficiently by
+	// the JS interpreter! If this is time critical code,
+	// you can replace by a suitable shift and divide.
+	var f_unscaled = sSign * mant1 * Math.pow(2, exp1 - 15);
+
+	return f_unscaled;
+	}
+```
+
+### uflt12
+
+A `uflt12` datum represents an unsigned floating point number in the range [0, 1.0), transmitted as a 16-bit field. The encoded field is interpreted as follows:
+
+bits | description
+:---:|:---
+11..8 | binary exponent `b`
+7..0 | fraction `f`
+
+The corresponding floating point value is computed by computing `f`/256 * 2^(`b`-15). Note that this format is deliberately not IEEE-compliant; it's intended to be easy to decode by hand and not overwhelmingly sophisticated.
+
+For example, if the transmitted message contains 0x1, 0xAB, the equivalent floating point number is found as follows.
+
+1. The full 16-bit number is 0x1AB.
+2. `b`  is therefore 0x1, and `b`-15 is -14.  2^-14 is 1/16384
+3. `f` is 0xAB. 0xAB/256 is 0.67
+4. `f * 2^(b-15)` is therefore 0.67/16384 or 0.0000408 (to three significant digits)
+
+Floating point mavens will immediately recognize:
+
+* There is no sign bit; all numbers are positive.
+* Numbers do not need to be normalized (although in practice they always are).
+* The format is somewhat wasteful, because it explicitly transmits the most-significant bit of the fraction. (Most binary floating-point formats assume that `f` is is normalized, which means by definition that the exponent `b` is adjusted and `f` is shifted left until the most-significant bit of `f` is one. Most formats then choose to delete the most-significant bit from the encoding. If we were to do that, we would insist that the actual value of `f` be in the range 256 .. 512, and then transmit only `f - 256`, saving a bit. However, this complicates the handling of gradual underflow; see next point.)
+* Gradual underflow at the bottom of the range is automatic and simple with this encoding; the more sophisticated schemes need extra logic (and extra testing) in order to provide the same feature.
+
+#### JavaScript decoder
+
+```javascript
+function uflt122f(rawUflt12)
+	{
+	// rawUflt12 is the 2-byte number decoded from wherever;
+	// it's in range 0..0xFFF (12 bits). For safety, we mask
+	// on entry and discard the high-order bits.
+	// bits 11..8 are the exponent
+	// bits 7..0 are the the mantissa. Unlike IEEE format,
+	// 	the msb is explicit; this means that numbers
+	//	might not be normalized, but makes coding for
+	//	underflow easier.
+	// As with IEEE format, negative zero is possible, so
+	// we special-case that in hopes that JavaScript will
+	// also cooperate.
+	//
+	// The result is a number in the half-open interval [0, 1.0);
+	//
+
+	// throw away high bits for repeatability.
+	rawUflt12 &= 0xFFF;
+
+	// extract the exponent
+	var exp1 = (rawUflt12 >> 8) & 0xF;
+
+	// extract the "mantissa" (the fractional part)
+	var mant1 = (rawUflt12 & 0xFF) / 256.0;
+
+	// convert back to a floating point number. We hope
+	// that Math.pow(2, k) is handled efficiently by
+	// the JS interpreter! If this is time critical code,
+	// you can replace by a suitable shift and divide.
+	var f_unscaled = sSign * mant1 * Math.pow(2, exp1 - 15);
+
+	return f_unscaled;
+	}
+```
 
 ## Release History
 
-- V2.1.5 fixes issue [#56] (a documentation bug). Documentation was quickly reviewed and other issues were corrected. The OTAA examples were also updated slightly.
+- v2.3.2 is a patch release. It incorporates two pull requests.
+
+  - [#204](https://github.com/mcci-catena/arduino-lmic/pull/204) eliminates a warning if using a custom pinmap.
+  - [#206](https://github.com/mcci-catena/arduino-lmic/pull/206) updates CI testing to Arduino IDE v1.8.8.
+
+- v2.3.1 is a patch release. It adds `<arduino_lmic_user_configuration.h>`, which loads the pre-proceesor LMIC configuration variables into scope (issue [#199](https://github.com/mcci-catena/arduino-lmic/issues/199)).
+
+- v2.3.0 introduces two important changes.
+
+    1. The pinmap is extended with an additional field `pConfig`, pointing to a C++ class instance. This instance, if provided, has extra methods for dealing with TCXO control and other fine details of operating the radio. It also gives a natural way for us to extend the behavior of the HAL.
+
+    2. Pinmaps can be pre-configured into the library, so that users don't have to do this in every sketch.
+
+  Accompanying this was a fairly large refactoring of inner header files. We now have top-level header file `<arduino_lmic_hal_configuration.h>`, which provides much the same info as the original `<hal/hal.h>`, without bringing most of the LMIC internal definitions into scope. We also changed the SPI API based on a suggestion from @manuelbl, making the HAL more friendly to structured BSPs (and also making the SPI API potentially faster).
+
+- Interim bug fixes: added a new API (`radio_irq_handler_v2()`), which allows the caller to provide the timestamp of the interrupt. This allows for more accurate timing, because the knowledge of interrupt overhead can be moved to a platform-specific layer ([#148](https://github.com/mcci-catena/arduino-lmic/issues/148)). Fixed compile issues on ESP32 ([#140](https://github.com/mcci-catena/arduino-lmic/issues/140) and [#153](https://github.com/mcci-catena/arduino-lmic/issues/150)). We added ESP32 and 32u4 as targets in CI testing. We switched CI testing to Arduino IDE 1.8.7.
+   Fixed issue [#161](https://github.com/mcci-catena/arduino-lmic/issues/161) selecting the Japan version of as923 using `CFG_as923jp` (selecting via `CFG_as923` and `LMIC_COUNTRY_CODE=LMIC_COUNTRY_CODE_JP` worked).
+   Fixed [#38](https://github.com/mcci-catena/arduino-lmic/issues/38) -- now any call to hal_init() will put the NSS line in the idle (high/inactive) state. As a side effect, RXTX is initialized, and RESET code changed to set value before transitioning state. Likely no net effect, but certainly more correct.
+
+- V2.2.2 adds `ttn-abp-feather-us915-dht22.ino` example, and fixes some documentation typos. It also fixes encoding of the `Margin` field of the `DevStatusAns` MAC message ([#130](https://github.com/mcci-catena/arduino-lmic/issues/130)).  This makes Arduino LMIC work with newtorks implemented with [LoraServer](https://www.loraserver.io/).
+
+- V2.2.1 corrects the value of `ARDUINO_LMIC_VERSION` ([#123](https://github.com/mcci-catena/arduino-lmic/issues/123)), allows ttn-otaa-feather-us915 example to compile for the Feather 32u4 LoRa ([#116](https://github.com/mcci-catena/arduino-lmic/issues/116)), and addresses documentation issues ([#122](https://github.com/mcci-catena/arduino-lmic/issues/122), [#120](https://github.com/mcci-catena/arduino-lmic/issues/120)).
+
+- V2.2.0 adds encoding functions and `tn-otaa-feather-us915-dht22.ino` example. Plus a large number of issues: [#59](https://github.com/mcci-catena/arduino-lmic/issues/59), [#60](https://github.com/mcci-catena/arduino-lmic/issues/60), [#63](https://github.com/mcci-catena/arduino-lmic/issues/63), [#64](https://github.com/mcci-catena/arduino-lmic/issues/47) (listen-before-talk for Japan), [#65](https://github.com/mcci-catena/arduino-lmic/issues/65), [#68](https://github.com/mcci-catena/arduino-lmic/issues/68), [#75](https://github.com/mcci-catena/arduino-lmic/issues/75), [#78](https://github.com/mcci-catena/arduino-lmic/issues/78), [#80](https://github.com/mcci-catena/arduino-lmic/issues/80), [#91](https://github.com/mcci-catena/arduino-lmic/issues/91), [#98](https://github.com/mcci-catena/arduino-lmic/issues/98), [#101](https://github.com/mcci-catena/arduino-lmic/issues/101). Added full Travis CI testing, switched to travis-ci.com as the CI service. Prepared to publish library in the offical Arduino library list.
+
+- V2.1.5 fixes issue [#56](https://github.com/mcci-catena/arduino-lmic/issues/56) (a documentation bug). Documentation was quickly reviewed and other issues were corrected. The OTAA examples were also updated slightly.
 
 - V2.1.4 fixes issues [#47](https://github.com/mcci-catena/arduino-lmic/issues/47) and [#50](https://github.com/mcci-catena/arduino-lmic/issues/50) in the radio driver for the SX1276 (both related to handling of output power control bits).
 

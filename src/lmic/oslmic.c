@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2014-2016 IBM Corporation.
+ * Copyright (c) 2016-2017 MCCI Corporation.
  * All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -70,7 +71,11 @@ static int unlinkjob (osjob_t** pnext, osjob_t* job) {
 // clear scheduled job
 void os_clearCallback (osjob_t* job) {
     hal_disableIRQs();
-    unlinkjob(&OS.scheduledjobs, job) || unlinkjob(&OS.runnablejobs, job);
+
+    // if it's not in the scheduled jobs, look in the runnable...
+    if (! unlinkjob(&OS.scheduledjobs, job))
+        unlinkjob(&OS.runnablejobs, job);
+
     hal_enableIRQs();
 }
 

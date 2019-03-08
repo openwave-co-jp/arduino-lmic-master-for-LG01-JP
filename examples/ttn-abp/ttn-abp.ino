@@ -1,5 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2015 Thomas Telkamp and Matthijs Kooijman
+ * Copyright (c) 2018 Terry Moore, MCCI
  *
  * Permission is hereby granted, free of charge, to anyone
  * obtaining a copy of this document and accompanying files,
@@ -25,7 +26,8 @@
  * AppSKey. Each device should have their own unique values for these
  * fields.
  *
- * Do not forget to define the radio type correctly in config.h.
+ * Do not forget to define the radio type correctly in
+ * arduino-lmic/project_config/lmic_project_config.h or from your BOARDS.txt.
  *
  *******************************************************************************/
 
@@ -36,23 +38,35 @@
 #include <hal/hal.h>
 #include <SPI.h>
 
+//
+// For normal use, we require that you edit the sketch to replace FILLMEIN
+// with values assigned by the TTN console. However, for regression tests,
+// we want to be able to compile these scripts. The regression tests define
+// COMPILE_REGRESSION_TEST, and in that case we define FILLMEIN to a non-
+// working but innocuous value.
+//
+#ifdef COMPILE_REGRESSION_TEST
+# define FILLMEIN 0
+#else
+# warning "You must replace the values marked FILLMEIN with real values from the TTN control panel!"
+# define FILLMEIN (#dont edit this, edit the lines that use FILLMEIN)
+#endif
+
 // LoRaWAN NwkSKey, network session key
-// This is the default Semtech key, which is used by the early prototype TTN
-// network.
-static const PROGMEM u1_t NWKSKEY[16] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
+static const PROGMEM u1_t NWKSKEY[16] = { FILLMEIN };
 
 // LoRaWAN AppSKey, application session key
-// This is the default Semtech key, which is used by the early prototype TTN
-// network.
-static const u1_t PROGMEM APPSKEY[16] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C };
+static const u1_t PROGMEM APPSKEY[16] = { FILLMEIN };
 
 // LoRaWAN end-device address (DevAddr)
 // See http://thethingsnetwork.org/wiki/AddressSpace
-static const u4_t DEVADDR = 0x03FF0001 ; // <-- Change this address for every node!
+// The library converts the address to network byte order as needed.
+static const u4_t DEVADDR = FILLMEIN ; // <-- Change this address for every node!
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
-// DISABLE_JOIN is set in config.h, otherwise the linker will complain).
+// DISABLE_JOIN is set in arduino-lmic/project_config/lmic_project_config.h,
+// otherwise the linker will complain).
 void os_getArtEui (u1_t* buf) { }
 void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
@@ -97,9 +111,14 @@ void onEvent (ev_t ev) {
         case EV_JOINED:
             Serial.println(F("EV_JOINED"));
             break;
-        case EV_RFU1:
-            Serial.println(F("EV_RFU1"));
-            break;
+        /*
+        || This event is defined but not used in the code. No
+        || point in wasting codespace on it.
+        ||
+        || case EV_RFU1:
+        ||     Serial.println(F("EV_RFU1"));
+        ||     break;
+        */
         case EV_JOIN_FAILED:
             Serial.println(F("EV_JOIN_FAILED"));
             break;
@@ -134,8 +153,20 @@ void onEvent (ev_t ev) {
         case EV_LINK_ALIVE:
             Serial.println(F("EV_LINK_ALIVE"));
             break;
-         default:
-            Serial.println(F("Unknown event"));
+        /*
+        || This event is defined but not used in the code. No
+        || point in wasting codespace on it.
+        ||
+        || case EV_SCAN_FOUND:
+        ||    Serial.println(F("EV_SCAN_FOUND"));
+        ||    break;
+        */
+        case EV_TXSTART:
+            Serial.println(F("EV_TXSTART"));
+            break;
+        default:
+            Serial.print(F("Unknown event: "));
+            Serial.println((unsigned) ev);
             break;
     }
 }
@@ -181,10 +212,10 @@ void setup() {
     uint8_t nwkskey[sizeof(NWKSKEY)];
     memcpy_P(appskey, APPSKEY, sizeof(APPSKEY));
     memcpy_P(nwkskey, NWKSKEY, sizeof(NWKSKEY));
-    LMIC_setSession (0x1, DEVADDR, nwkskey, appskey);
+    LMIC_setSession (0x13, DEVADDR, nwkskey, appskey);
     #else
     // If not running an AVR with PROGMEM, just use the arrays directly
-    LMIC_setSession (0x1, DEVADDR, NWKSKEY, APPSKEY);
+    LMIC_setSession (0x13, DEVADDR, NWKSKEY, APPSKEY);
     #endif
 
     #if defined(CFG_eu868)
@@ -223,7 +254,7 @@ void setup() {
     // TTN uses SF9 for its RX2 window.
     LMIC.dn2Dr = DR_SF9;
 
-    // Set data rate and transmit power for uplink (note: txpow seems to be ignored by the library)
+    // Set data rate and transmit power for uplink
     LMIC_setDrTxpow(DR_SF7,14);
 
     // Start job

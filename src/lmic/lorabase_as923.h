@@ -68,7 +68,7 @@ enum {
         AS923_FREQ_MAX = 928000000
 };
 enum {
-        AS923_TX_EIRP_MAX_DBM = 13      // 16 dBm
+        AS923_TX_EIRP_MAX_DBM = 16      // 16 dBm
 };
 enum { DR_PAGE_AS923 = 0x10 * (LMIC_REGION_as923 - 1) };
 

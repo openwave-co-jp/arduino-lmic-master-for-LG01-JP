@@ -1,5 +1,7 @@
 /*******************************************************************************
  * Copyright (c) 2015 Matthijs Kooijman
+ * Copyright (c) 2018 MCCI Corporation
+ *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -10,14 +12,20 @@
 
 #include <Arduino.h>
 #include <SPI.h>
+// include all the lmic header files, including ../lmic/hal.h
 #include "../lmic.h"
+// include the C++ hal.h
 #include "hal.h"
+// we may need some things from stdio.
 #include <stdio.h>
 
 // -----------------------------------------------------------------------------
 // I/O
 
-static const lmic_pinmap *plmic_pins;
+static const Arduino_LMIC::HalPinmap_t *plmic_pins;
+static Arduino_LMIC::HalConfiguration_t *pHalConfig;
+static Arduino_LMIC::HalConfiguration_t nullHalConig;
+static hal_failure_handler_t* custom_hal_failure_handler = NULL;
 
 static void hal_interrupt_init(); // Fwd declaration
 
@@ -33,11 +41,19 @@ static void hal_io_init () {
 //    Serial.print("dio[1]: "); Serial.println(plmic_pins->dio[1]);
 //    Serial.print("dio[2]: "); Serial.println(plmic_pins->dio[2]);
 
+    // initialize SPI chip select to high (it's active low)
+    digitalWrite(plmic_pins->nss, HIGH);
     pinMode(plmic_pins->nss, OUTPUT);
-    if (plmic_pins->rxtx != LMIC_UNUSED_PIN)
+
+    if (plmic_pins->rxtx != LMIC_UNUSED_PIN) {
+        // initialize to RX
+        digitalWrite(plmic_pins->rxtx, LOW != plmic_pins->rxtx_rx_active);
         pinMode(plmic_pins->rxtx, OUTPUT);
-    if (plmic_pins->rst != LMIC_UNUSED_PIN)
-        pinMode(plmic_pins->rst, OUTPUT);
+    }
+    if (plmic_pins->rst != LMIC_UNUSED_PIN) {
+        // initialize RST to floating
+        pinMode(plmic_pins->rst, INPUT);
+    }
 
     hal_interrupt_init();
 }
@@ -54,8 +70,8 @@ void hal_pin_rst (u1_t val) {
         return;
 
     if(val == 0 || val == 1) { // drive pin
-        pinMode(plmic_pins->rst, OUTPUT);
         digitalWrite(plmic_pins->rst, val);
+        pinMode(plmic_pins->rst, OUTPUT);
     } else { // keep pin floating
         pinMode(plmic_pins->rst, INPUT);
     }
@@ -91,16 +107,19 @@ static void hal_io_check() {
 
 #else
 // Interrupt handlers
-static bool interrupt_flags[NUM_DIO] = {0};
+static ostime_t interrupt_time[NUM_DIO] = {0};
 
 static void hal_isrPin0() {
-    interrupt_flags[0] = true;
+    ostime_t now = os_getTime();
+    interrupt_time[0] = now ? now : 1;
 }
 static void hal_isrPin1() {
-    interrupt_flags[1] = true;
+    ostime_t now = os_getTime();
+    interrupt_time[1] = now ? now : 1;
 }
 static void hal_isrPin2() {
-    interrupt_flags[2] = true;
+    ostime_t now = os_getTime();
+    interrupt_time[2] = now ? now : 1;
 }
 
 typedef void (*isr_t)();
@@ -118,12 +137,14 @@ static void hal_interrupt_init() {
 static void hal_io_check() {
     uint8_t i;
     for (i = 0; i < NUM_DIO; ++i) {
+        ostime_t iTime;
         if (plmic_pins->dio[i] == LMIC_UNUSED_PIN)
             continue;
 
-        if (interrupt_flags[i]) {
-            interrupt_flags[i] = false;
-            radio_irq_handler(i);
+        iTime = interrupt_time[i];
+        if (iTime) {
+            interrupt_time[i] = 0;
+            radio_irq_handler_v2(i, iTime);
         }
     }
 }
@@ -136,33 +157,36 @@ static void hal_spi_init () {
     SPI.begin();
 }
 
-void hal_pin_nss (u1_t val) {
-    if (!val) {
-        uint32_t spi_freq;
+static void hal_spi_trx(u1_t cmd, u1_t* buf, size_t len, bit_t is_read) {
+    uint32_t spi_freq;
+    u1_t nss = plmic_pins->nss;
 
-        if ((spi_freq = plmic_pins->spi_freq) == 0)
-            spi_freq = LMIC_SPI_FREQ;
+    if ((spi_freq = plmic_pins->spi_freq) == 0)
+        spi_freq = LMIC_SPI_FREQ;
 
-        SPISettings settings(spi_freq, MSBFIRST, SPI_MODE0);
-        SPI.beginTransaction(settings);
-    } else {
-        SPI.endTransaction();
+    SPISettings settings(spi_freq, MSBFIRST, SPI_MODE0);
+    SPI.beginTransaction(settings);
+    digitalWrite(nss, 0);
+
+    SPI.transfer(cmd);
+
+    for (; len > 0; --len, ++buf) {
+        u1_t data = is_read ? 0x00 : *buf;
+        data = SPI.transfer(data);
+        if (is_read)
+            *buf = data;
     }
 
-    //Serial.println(val?">>":"<<");
-    digitalWrite(plmic_pins->nss, val);
+    digitalWrite(nss, 1);
+    SPI.endTransaction();
 }
 
-// perform SPI transaction with radio
-u1_t hal_spi (u1_t out) {
-    u1_t res = SPI.transfer(out);
-/*
-    Serial.print(">");
-    Serial.print(out, HEX);
-    Serial.print("<");
-    Serial.println(res, HEX);
-    */
-    return res;
+void hal_spi_write(u1_t cmd, const u1_t* buf, size_t len) {
+    hal_spi_trx(cmd, (u1_t*)buf, len, 0);
+}
+
+void hal_spi_read(u1_t cmd, u1_t* buf, size_t len) {
+    hal_spi_trx(cmd, buf, len, 1);
 }
 
 // -----------------------------------------------------------------------------
@@ -271,6 +295,26 @@ void hal_sleep () {
 // -----------------------------------------------------------------------------
 
 #if defined(LMIC_PRINTF_TO)
+#if !defined(__AVR)
+static ssize_t uart_putchar (void *, const char *buf, size_t len) {
+    return LMIC_PRINTF_TO.write((const uint8_t *)buf, len);
+}
+
+static cookie_io_functions_t functions =
+ {
+     .read = NULL,
+     .write = uart_putchar,
+     .seek = NULL,
+     .close = NULL
+ };
+
+void hal_printf_init() {
+    stdout = fopencookie(NULL, "w", functions);
+    if (stdout != nullptr) {
+        setvbuf(stdout, NULL, _IONBF, 0);
+    }
+}
+#else // defined(__AVR)
 static int uart_putchar (char c, FILE *)
 {
     LMIC_PRINTF_TO.write(c) ;
@@ -288,14 +332,43 @@ void hal_printf_init() {
     // The uart is the standard output device STDOUT.
     stdout = &uartout ;
 }
+
+#endif // !defined(ESP8266) || defined(ESP31B) || defined(ESP32)
 #endif // defined(LMIC_PRINTF_TO)
 
 void hal_init (void) {
-    hal_init_ex(&lmic_pins);
+    // use the global constant
+    Arduino_LMIC::hal_init_with_pinmap(&lmic_pins);
 }
 
+// hal_init_ex is a C API routine, written in C++, and it's called
+// with a pointer to an lmic_pinmap.
 void hal_init_ex (const void *pContext) {
-    plmic_pins = (const lmic_pinmap *)pContext;
+    const lmic_pinmap * const pHalPinmap = (const lmic_pinmap *) pContext;
+    if (! Arduino_LMIC::hal_init_with_pinmap(pHalPinmap)) {
+        hal_failed(__FILE__, __LINE__);
+    }
+}
+
+// C++ API: initialize the HAL properly with a configuration object
+namespace Arduino_LMIC {
+bool hal_init_with_pinmap(const HalPinmap_t *pPinmap)
+    {
+    if (pPinmap == nullptr)
+        return false;
+
+    // set the static pinmap pointer.
+    plmic_pins = pPinmap;
+
+    // set the static HalConfiguration pointer.
+    HalConfiguration_t * const pThisHalConfig = pPinmap->pConfig;
+
+    if (pThisHalConfig != nullptr)
+        pHalConfig = pThisHalConfig;
+    else
+        pHalConfig = &nullHalConig;
+
+    pHalConfig->begin();
 
     // configure radio I/O and interrupt handler
     hal_io_init();
@@ -307,9 +380,17 @@ void hal_init_ex (const void *pContext) {
     // printf support
     hal_printf_init();
 #endif
-}
+    // declare success
+    return true;
+    }
+}; // namespace Arduino_LMIC
+
 
 void hal_failed (const char *file, u2_t line) {
+    if (custom_hal_failure_handler != NULL) {
+        (*custom_hal_failure_handler)(file, line);
+    }
+
 #if defined(LMIC_FAILURE_TO)
     LMIC_FAILURE_TO.println("FAILURE ");
     LMIC_FAILURE_TO.print(file);
@@ -317,6 +398,26 @@ void hal_failed (const char *file, u2_t line) {
     LMIC_FAILURE_TO.println(line);
     LMIC_FAILURE_TO.flush();
 #endif
+
     hal_disableIRQs();
-    while(1);
+
+    // Infinite loop
+    while (1) {
+        ;
+    }
+}
+
+void hal_set_failure_handler(const hal_failure_handler_t* const handler) {
+    custom_hal_failure_handler = handler;
+}
+
+ostime_t hal_setModuleActive (bit_t val) {
+    // setModuleActive() takes a c++ bool, so
+    // it effectively says "val != 0". We
+    // don't have to.
+    return pHalConfig->setModuleActive(val);
+}
+
+bit_t hal_queryUsingTcxo(void) {
+    return pHalConfig->queryUsingTcxo();
 }

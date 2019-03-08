@@ -59,7 +59,7 @@ uint8_t LMICin866_maxFrameLen(uint8_t dr) {
 }
 
 static CONST_TABLE(s1_t, TXPOWLEVELS)[] = {
-        20, 14, 11, 8, 5, 2, 0,0, 0,0,0,0, 0,0,0,0
+        30, 28, 26, 24, 22, 20, 18, 16, 14, 12, 10, 0, 0,0,0,0
 };
 
 int8_t LMICin866_pow2dBm(uint8_t mcmd_ladr_p1) {
@@ -95,6 +95,8 @@ static CONST_TABLE(u4_t, iniChannelFreq)[NUM_DEFAULT_CHANNELS] = {
 
 // india ignores join, becuase the channel setup is the same either way.
 void LMICin866_initDefaultChannels(bit_t join) {
+        LMIC_API_PARAMETER(join);
+
         os_clearMem(&LMIC.channelFreq, sizeof(LMIC.channelFreq));
         os_clearMem(&LMIC.channelDrMap, sizeof(LMIC.channelDrMap));
         os_clearMem(&LMIC.bands, sizeof(LMIC.bands));

@@ -1,5 +1,3 @@
-/* raw-feather.ino	Tue Jan 23 2018 10:25:50 chwon */
-
 /*
 
 Module:  raw-feather.ino
@@ -7,31 +5,12 @@ Module:  raw-feather.ino
 Function:
         Slightly improved Raw test example, for Adafruit Feather M0 LoRa
 
-Version:
-        V0.7.0	Tue Jan 23 2018 10:25:50 chwon	Edit level 2
-
-Copyright notice:
-        This file copyright (C) 2017, 2018 by
-
-                MCCI Corporation
-                3520 Krums Corners Road
-                Ithaca, NY  14850
-
-        An unpublished work.  All rights reserved.
-
-        This file is proprietary information, and may not be disclosed or
-        copied without the prior permission of MCCI Corporation.
+Copyright notice and License:
+        See LICENSE file accompanying this project.
 
 Author:
         Matthijs Kooijman  2015
         Terry Moore, MCCI Corporation	April 2017
-
-Revision history:
-   0.5.0  Sat Apr  1 2017 22:26:22  tmm
-        Module created.
-
-   0.7.0  Tue Jan 23 2018 10:25:50  chwon
-        Add Catena 4551 platform support.
 
 */
 
@@ -64,7 +43,7 @@ Revision history:
 //
 // #if !defined(DISABLE_INVERT_IQ_ON_RX)
 // #error This example requires DISABLE_INVERT_IQ_ON_RX to be set. Update \
-//        config.h in the lmic library to set it.
+//        lmic_project_config.h in arduino-lmic/project_config to set it.
 // #endif
 
 // How often to send a packet. Note that this sketch bypasses the normal
@@ -88,6 +67,20 @@ const lmic_pinmap lmic_pins = {
     .rssi_cal = 8,              // LBT cal for the Adafruit Feather M0 LoRa, in dB
     .spi_freq = 8000000,
 };
+#elif defined(ARDUINO_AVR_FEATHER32U4)
+// Pin mapping for Adafruit Feather 32u4 LoRa, etc.
+// Just like Feather M0 LoRa, but uses SPI at 1MHz; and that's only
+// because MCCI doesn't have a test board; probably higher frequencies
+// will work.
+const lmic_pinmap lmic_pins = {
+    .nss = 8,
+    .rxtx = LMIC_UNUSED_PIN,
+    .rst = 4,
+    .dio = {3, 6, LMIC_UNUSED_PIN},
+    .rxtx_rx_active = 0,
+    .rssi_cal = 8,              // LBT cal for the Adafruit Feather M0 LoRa, in dB
+    .spi_freq = 1000000,
+};
 #elif defined(ARDUINO_CATENA_4551)
 const lmic_pinmap lmic_pins = {
         .nss = 7,
@@ -107,7 +100,8 @@ const lmic_pinmap lmic_pins = {
 
 // These callbacks are only used in over-the-air activation, so they are
 // left empty here (we cannot leave them out completely unless
-// DISABLE_JOIN is set in config.h, otherwise the linker will complain).
+// DISABLE_JOIN is set in arduino-lmoc/project_config/lmic_project_config.h,
+// otherwise the linker will complain).
 void os_getArtEui (u1_t* buf) { }
 void os_getDevEui (u1_t* buf) { }
 void os_getDevKey (u1_t* buf) { }
