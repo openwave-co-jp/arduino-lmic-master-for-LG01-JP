@@ -16,13 +16,13 @@
 #define DISABLE_BEACONS
 
 //LG01を利用する場合は以下を定義すること。
-//#define DISABLE_INVERT_IQ_ON_RX
-//#define MINRX_SYMS 250
-//#define FOR_LG01_GW
+#define DISABLE_INVERT_IQ_ON_RX
+#define MINRX_SYMS 250
+#define FOR_LG01_GW
 
 //LG02を利用する場合は以下を定義すること。
-#define FOR_LG02_GW
-#define MINRX_SYMS 250
+//#define FOR_LG02_GW
+//#define MINRX_SYMS 250
 
 //LG308を利用する場合は以下を定義すること。
 
