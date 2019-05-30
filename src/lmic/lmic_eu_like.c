@@ -65,7 +65,7 @@ u1_t LMICeulike_mapChannels(u1_t chpage, u2_t chmap) {
 
 #if !defined(DISABLE_JOIN)
 void LMICeulike_initJoinLoop(uint8_t nDefaultChannels, s1_t adrTxPow) {
-  #if defined(FOR_LG01_GW)
+  #if defined(FOR_LG01_GW) || defined(FOR_LG02_GW)
 	LMIC.txChnl = 0;
   #else
 	#if CFG_TxContinuousMode

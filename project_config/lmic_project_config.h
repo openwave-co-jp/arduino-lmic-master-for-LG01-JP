@@ -4,7 +4,7 @@
 //#define CFG_au921 1
 //#define CFG_as923 1
 #define CFG_as923jp 1
-//#define LMIC_COUNTRY_CODE LMIC_COUNTRY_CODE_JP	/* for as923-JP */
+#define LMIC_COUNTRY_CODE LMIC_COUNTRY_CODE_JP	/* for as923-JP */
 //#define CFG_in866 1
 #define CFG_sx1276_radio 1
 //#define LMIC_USE_INTERRUPTS
@@ -15,12 +15,23 @@
 // Requires ping to be disabled too
 #define DISABLE_BEACONS
 
-//LG01‚ğ—˜—p‚·‚éê‡‚ÍˆÈ‰º‚ğ’è‹`‚·‚é‚±‚ÆB
-#define DISABLE_INVERT_IQ_ON_RX
-#define MINRX_SYMS 250
-#define FOR_LG01_GW
+//LG01ã‚’åˆ©ç”¨ã™ã‚‹å ´åˆã¯ä»¥ä¸‹ã‚’å®šç¾©ã™ã‚‹ã“ã¨ã€‚
+//#define DISABLE_INVERT_IQ_ON_RX
+//#define MINRX_SYMS 250
+//#define FOR_LG01_GW
 
-//AS923‚ÅADR10ˆÈŠO‚Å’ÊM‚·‚éê‡‚ÉˆÈ‰º‚ğdefine‚µ‚Ä‚­‚¾‚³‚¢B
-//‚Ü‚½AJoin‚ÌDR’l‚ğ•ÏX‚·‚é‚½‚ßAlmic_bandplan_as923.h‚Ì
-//LMICbandplan_getInitialDrJoin()‚à•ÏX‚µ‚Ä‚­‚¾‚³‚¢B
+//LG02ã‚’åˆ©ç”¨ã™ã‚‹å ´åˆã¯ä»¥ä¸‹ã‚’å®šç¾©ã™ã‚‹ã“ã¨ã€‚
+#define FOR_LG02_GW
+#define MINRX_SYMS 250
+
+//LG308ã‚’åˆ©ç”¨ã™ã‚‹å ´åˆã¯ä»¥ä¸‹ã‚’å®šç¾©ã™ã‚‹ã“ã¨ã€‚
+
+//AS923ã§ã€DR10ä»¥å¤–ã§é€šä¿¡ã™ã‚‹å ´åˆã«ä»¥ä¸‹ã‚’defineã—ã¦ãã ã•ã„ã€‚
+//ã¾ãŸã€Joinæ™‚ã®DRå€¤ã‚’å¤‰æ›´ã™ã‚‹ãŸã‚ã€lmic_bandplan_as923.hã®
+//LMICbandplan_getInitialDrJoin()ã‚‚å¤‰æ›´ã—ã¦ãã ã•ã„ã€‚
 //#define OTHER_DR_AS923
+
+
+// DEBUG
+#define LMIC_DEBUG_LEVEL 2
+#define LMIC_PRINTF_TO Serial

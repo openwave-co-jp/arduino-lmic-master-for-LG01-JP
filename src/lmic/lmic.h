@@ -140,7 +140,7 @@ enum { RETRY_PERIOD_secs  =     3 };  // secs - random period for retrying a con
 
 #if CFG_LMIC_EU_like // EU868 spectrum ====================================================
 
-#if defined(FOR_LG01_GW)
+#if defined(FOR_LG01_GW) || defined(FOR_LG02_GW)
 enum { MAX_CHANNELS =  2 };      //!< Max supported channels
 #else
 enum { MAX_CHANNELS = 16 };      //!< Max supported channels
