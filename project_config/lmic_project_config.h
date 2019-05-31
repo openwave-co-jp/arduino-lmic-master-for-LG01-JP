@@ -25,6 +25,7 @@
 //#define MINRX_SYMS 250
 
 //LG308を利用する場合は以下を定義すること。
+//#define MINRX_SYMS 250
 
 //AS923で、DR10以外で通信する場合に以下をdefineしてください。
 //また、Join時のDR値を変更するため、lmic_bandplan_as923.hの
@@ -33,5 +34,5 @@
 
 
 // DEBUG
-#define LMIC_DEBUG_LEVEL 2
-#define LMIC_PRINTF_TO Serial
+//#define LMIC_DEBUG_LEVEL 2
+//#define LMIC_PRINTF_TO Serial
