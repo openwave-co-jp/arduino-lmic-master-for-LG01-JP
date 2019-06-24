@@ -32,6 +32,8 @@
 //LMICbandplan_getInitialDrJoin()も変更してください。
 //#define OTHER_DR_AS923
 
+//MATCHX MX1702を利用する場合は以下を定義すること。
+//#define MINRX_SYMS 250
 
 // DEBUG
 //#define LMIC_DEBUG_LEVEL 2
